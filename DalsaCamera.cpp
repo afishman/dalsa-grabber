@@ -69,18 +69,18 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	options.logLevel = GEV_LOG_LEVEL_NORMAL;
 	GevSetLibraryConfigOptions(&options);
 
-	// DISCOVER Cameras
-	// Get all the IP addresses of attached network cards.
+	// Discover Cameras
 	int numCameras = 0;
-	//TODO: genicam_cpp_demo uses the equation (MAX_NETIF * MAX_CAMERAS_PER_NETIF), with the
-	//hardcoded values below
+	//TODO: why does genicam_cpp_demo uses the equation (MAX_NETIF * MAX_CAMERAS_PER_NETIF)
+	//   with the hardcoded value below
 	int maxCameras = 8 * 32;
 
-	//For storing status 
-	UINT16 status;
-
 	GEV_DEVICE_INTERFACE  pCamera[maxCameras] = {0};
-	status = GevGetCameraList( pCamera, maxCameras, &numCameras);
+	if(GevGetCameraList(pCamera, maxCameras, &numCameras))
+	{
+		cerr << "Failed to get camera list\n";
+		return 1;
+	}
 
 	if(!numCameras)
 	{
@@ -89,10 +89,13 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	}
 
 	// Open first camera
-	// TODO: Check status
 	// TODO: Handle multiple cmaeras
 	int camIndex = 0;
-	status = GevOpenCamera(&pCamera[0], GevExclusiveMode, &handle);
+	if(GevOpenCamera(&pCamera[0], GevExclusiveMode, &handle))
+	{
+		cerr << "Failed to open camera\n";
+		return 1;
+	}
 
 	// Settings taken from genicam_cpp_demo from GigE-V framework
 	// TODO: offload to settings file?
@@ -108,33 +111,21 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	
 	GevSetCameraInterfaceOptions(handle, &camOptions);
 
-	//TODO goto fail
-	if(status != GEVLIB_OK)
-	{
-		cerr << "Failed to open camera, status: " << status << "\n";
-		return 1;
-	}
-
 	// Initiliaze access to GenICam features via Camera XML File
-	status = GevInitGenICamXMLFeatures(handle, TRUE);				
-	if (status != GEVLIB_OK)
+	if (GevInitGenICamXMLFeatures(handle, TRUE))
 	{
-		cerr << "Failed to find xml file for camera status: " << status << "\n";
+		cerr << "Failed to find xml file for camera \n";
 	}
 
 	// Get the name of XML file name back (example only - in case you need it somewhere).
 	//TODO: Where does max_path come from?
 	char xmlFileName[MAX_PATH] = {0};
-	status = GevGetGenICamXML_FileName(handle, (int)sizeof(xmlFileName), xmlFileName);
-	if (status != GEVLIB_OK) 
+	if(GevGetGenICamXML_FileName(handle, (int)sizeof(xmlFileName), xmlFileName)) 
 	{
-		cerr << "Failed to open xml file for camera status: %s\n" << status;
+		cerr << "Failed to open xml file for camera status: %s\n";
 		cerr << "For File: " << xmlFileName;
 	}
 	
-	// TODO: Log mode only?
-	printf("XML stored as %s\n", xmlFileName);
-
 	// Always disable pesky auto-brightness
 	int autoBrightness = 0;
 	if(GevSetFeatureValue(handle, "autoBrightnessMode", sizeof(autoBrightness), &autoBrightness))
@@ -149,8 +140,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
-	int stat = GevSetFeatureValue(handle, "AcquisitionFrameRate", sizeof(framerate), &framerate);
-	if(stat)
+	if(GevSetFeatureValue(handle, "AcquisitionFrameRate", sizeof(framerate), &framerate))
 	{
 		cerr << "Failed to set framerate to " << framerate << stat << endl;
 		return 1;
@@ -170,7 +160,6 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	}
 
 	// Get camera settings
-	// TODO: DRY this up
 	// TODO: Assert the retrieved value matches the one passed in
 	int type;	
 	float readExposed = -1;
@@ -193,7 +182,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	GevGetFeatureValue(handle, "PixelFormat", &type, sizeof(format), &format);
 	int size = height * width * GetPixelSizeInBytes(format);
 	int numBuffers = numBuf;
-	for (int i = 0; i < numBuffers; i++)
+	for(int i = 0; i < numBuffers; i++)
 	{
 		bufAddress[i] = (PUINT8)malloc(size);
 		memset(bufAddress[i], 0, size);
@@ -201,26 +190,26 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 
 	// Initialise Image Transfer
 	// TODO: Use Sync! It is more thread safe
-	status = GevInitImageTransfer(handle, Asynchronous, numBuf, bufAddress);
-	if(status != GEVLIB_OK)
+	if(GevInitImageTransfer(handle, Asynchronous, numBuf, bufAddress))
 	{
 		cerr << "Failed to Initiliaze image transfer\n";
 		return 1;
 	}
 
 	// TODO: Offload this to record/start functions?
-	status = GevStartImageTransfer(handle, -1);
-	if(status != GEVLIB_OK)
+	if(GevStartImageTransfer(handle, -1))
 	{
 		cerr << "Failed to start image transfer\n";
 		return 1;
 	}	
+
+	// Get the first image to _tNextFrameMicroseconds can be set
 	GEV_BUFFER_OBJECT* img_obj = nextAcquiredImage();
 	_tNextFrameMicroseconds = img_obj->timestamp_lo + periodMicroseconds();
 
 	_isOpened = 1;
 
-	// For framerate tracking
+	// For framerate acquisition logging
 	tStart = time(NULL);
 
 	return 0;
