@@ -56,8 +56,8 @@ void speedTest(int width, int height, float framerate)
 void monitor(int width, int height, float framerate)
 {
     // Open Camera
-    DalsaCamera camera = DalsaCamera();
-    if(camera.open(width, height, framerate))
+    DALSA_CAMERA = new DalsaCamera();
+    if(DALSA_CAMERA->open(width, height, framerate))
     {
         cerr << "Failed to open camera";
         return;
@@ -71,7 +71,7 @@ void monitor(int width, int height, float framerate)
     cv::Mat img;
     for(;;)
     {
-        if(camera.getNextImage(&img))
+        if(DALSA_CAMERA->getNextImage(&img))
         {
             break;
         }
@@ -92,23 +92,23 @@ void monitor(int width, int height, float framerate)
         } 
     }
 
-    camera.close();
+    DALSA_CAMERA->close();
     cvDestroyWindow(windowName);
 }
 
 
 void record(int width, int height, float framerate, float duration, char filename[])
 {
-    DalsaCamera camera = DalsaCamera();
-    if(!camera.open(width, height, framerate))
+    DALSA_CAMERA = new DalsaCamera();
+    if(!DALSA_CAMERA->open(width, height, framerate))
     {
         cerr << "Failed to open camera";
         return;
     } 
     
 
-    camera.record(duration, filename);       
-    camera.close();
+    DALSA_CAMERA->record(duration, filename);       
+    DALSA_CAMERA->close();
 }
 
 
