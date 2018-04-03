@@ -20,8 +20,6 @@ const float monitorScale = 0.25;
 DalsaCamera *DALSA_CAMERA = NULL;
 void sigintHandler(int s)
 {
-    printf("Shutting down camera");
-
     if(DALSA_CAMERA != NULL)
     {
         DALSA_CAMERA->close();
