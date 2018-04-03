@@ -203,7 +203,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}	
 
-	// Get the first image to _tNextFrameMicroseconds can be set
+	// Get the first image so _tNextFrameMicroseconds can be set
 	GEV_BUFFER_OBJECT* img_obj = nextAcquiredImage();
 	_tNextFrameMicroseconds = img_obj->timestamp_lo + periodMicroseconds();
 
@@ -244,7 +244,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 
 	// Check that we have received data ok, 
 	// TODO: Nicer to put in next_acquired_image
-	if (imgGev == NULL)
+	if(imgGev == NULL)
 	{
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "NULL Image Object.\n";
@@ -257,12 +257,11 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 		cerr << "GevWaitForNextImage returned " << status << "\n";
 		throw "next_acquired_image failure";
 	}
-	if (imgGev->status !=0)
+	if(imgGev->status !=0)
 	{
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "img->status = " << imgGev->status << "\n";
-		//HACK: Fix me
-		// throw "next_acquired_image failure";
+		throw "next_acquired_image failure";
 	}
 	// Check image data is actually there
 	if(imgGev -> address == NULL)
