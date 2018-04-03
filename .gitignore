@@ -1,3 +1,10 @@
+# Compiled Binary
+dalsaGrabber
+
+# Sublime Project
+*.sublime-project
+*.sublime-workspace
+
 # Prerequisites
 *.d
 
