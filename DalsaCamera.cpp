@@ -30,11 +30,16 @@ using namespace cv;
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 #include "encoder.cpp"
 
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+namespace logging = boost::log;
+
 // How much to rescale the image by in monitor mode (TODO: option?)
 
 milliseconds time_now()
 {
-	return duration_cast< milliseconds >(
+	return duration_cast<milliseconds>(
     	system_clock::now().time_since_epoch()
 	);
 }
@@ -205,31 +210,24 @@ int DalsaCamera::open(int width, int height, float framerate)
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
 	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
 
-	printf("Camera Settings: \n");
-	printf("\tWidth: %i\n", width);
-	printf("\tHeight: %i\n", height);
-	printf("\tFramerate: %.1f\n", framerate);
-	printf("\texposureTime (us): %f\n", readExposed);
+	BOOST_LOG_TRIVIAL(info) << "\tCamera Width" << width;
+	BOOST_LOG_TRIVIAL(info) << "\tCamera Height" << height;
+	BOOST_LOG_TRIVIAL(info) << "\tCamera Framerate" << framerate;
+	BOOST_LOG_TRIVIAL(info) << "\tCamera Exposure" << readExposed;
 
 	_width = width;
 	_height = height;
 	_framerate = framerate;
+	//TODO: exposure
 
 	char value_str[MAX_PATH] = {0};
-	GevGetFeatureValueAsString( handle, "PixelFormat", &type, MAX_PATH, value_str);
-	printf("\tPixelFormat (str) = %s\n", value_str);
+	GevGetFeatureValueAsString( handle, "PixelFormat ", &type, MAX_PATH, value_str);
+	BOOST_LOG_TRIVIAL(info) << "\tCamera Pixel Format " << value_str;
 	
-	GevGetFeatureValue(handle, "PixelFormat", &type, sizeof(format), &format);
-	printf("\tPixelFormat (val) = 0x%x\n\n", format); 
-
-	//TODO: Can set advanced Camera settings here such as timeout, packet size etc....
-
 	// Setup buffers
 	int size = height * width * GetPixelSizeInBytes(format);
-	printf("Frame Size: %i\n", size);
-	printf("Pixel Size in Bytes: %i\n", GetPixelSizeInBytes(format));
+	BOOST_LOG_TRIVIAL(debug) << "\tPixel Size in Bytes " << GetPixelSizeInBytes(format);
 
-	printf("Allocating memory for buffers...\n");
 	int numBuffers = numBuf;
 	for (int i = 0; i < numBuffers; i++)
 	{
@@ -239,7 +237,6 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 	// Initialise Image Transfer
 	// TODO: Use Sync! It is more thread safe
-	printf("Initialising Image Transfer....\n");
 	status = GevInitImageTransfer(handle, SynchronousNextEmpty, numBuf, bufAddress);
 	if(status != GEVLIB_OK)
 	{
@@ -248,7 +245,6 @@ int DalsaCamera::open(int width, int height, float framerate)
 	}
 
 	// TODO: Offload this to record/start functions?
-	printf("Starting Image Transfer....\n");
 	status = GevStartImageTransfer(handle, -1);
 	if(status != GEVLIB_OK)
 	{
@@ -271,7 +267,6 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage(){
 	int status;
 	
 	status = GevWaitForNextImage(handle, &imgGev, 10000);
-
 
 	// Check that we have received data ok, 
 	// TODO: Nicer to put in next_acquired_image

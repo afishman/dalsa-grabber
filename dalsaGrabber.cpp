@@ -14,6 +14,10 @@ using namespace cv;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+
 //TODO: program option
 const float monitorScale = 0.25;
 
