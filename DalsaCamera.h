@@ -26,10 +26,12 @@ class DalsaCamera
 
 		std::map<uint, GEV_BUFFER_OBJECT*> _reorderingMap;
 		uint _tNextFrameMicroseconds;
+		
+		void logImg(GEV_BUFFER_OBJECT*);
 
 
  	public:
-		DalsaCamera();
+		DalsaCamera(bool debugMode);
 		int width();
 		int height();
 		float framerate();
@@ -39,4 +41,5 @@ class DalsaCamera
 		int close();
 		int periodMicroseconds();
 		int record(float duration, char filename[]);
+		bool debug;
 };

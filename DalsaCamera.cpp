@@ -40,13 +40,14 @@ milliseconds time_now()
 	);
 }
 
-DalsaCamera::DalsaCamera()
+DalsaCamera::DalsaCamera(bool debugMode=true)
 {
 	//TODO: hardcoded values arrr baaaad
 	numBuf = 64;
 	bufAddress = new PUINT8[numBuf];
 	frameCount = 0;
 	timestampPrevFrame = -1;
+	debug = debugMode;
 
 	_width = 0;
 	_height = 0;
@@ -87,7 +88,6 @@ int DalsaCamera::open(int width, int height, float framerate)
 	GevGetLibraryConfigOptions( &options);
 	options.logLevel = GEV_LOG_LEVEL_NORMAL;
 	GevSetLibraryConfigOptions( &options);
-
 
 	// DISCOVER Cameras
 	// Get all the IP addresses of attached network cards.
@@ -238,12 +238,10 @@ int DalsaCamera::open(int width, int height, float framerate)
 	//TODO: Can set advanced Camera settings here such as timeout, packet size etc....
 
 	// Setup buffers
-
 	int size = height * width * GetPixelSizeInBytes(format);
 	printf("Frame Size: %i\n", size);
 	printf("Pixel Size in Bytes: %i\n", GetPixelSizeInBytes(format));
 
-	printf("Allocating memory for buffers...\n");
 	int numBuffers = numBuf;
 	for (int i = 0; i < numBuffers; i++)
 	{
@@ -253,8 +251,7 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 	// Initialise Image Transfer
 	// TODO: Use Sync! It is more thread safe
-	printf("Initialising Image Transfer....\n");
-	status = GevInitImageTransfer( handle, Asynchronous, numBuf, bufAddress);
+	status = GevInitImageTransfer(handle, Asynchronous, numBuf, bufAddress);
 	if(status != GEVLIB_OK)
 	{
 		cerr << "Failed to Initiliaze image transfer\n";
@@ -262,7 +259,6 @@ int DalsaCamera::open(int width, int height, float framerate)
 	}
 
 	// TODO: Offload this to record/start functions?
-	printf("Starting Image Transfer....\n");
 	status = GevStartImageTransfer(handle, -1);
 	if(status != GEVLIB_OK)
 	{
@@ -325,9 +321,8 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage(){
 //     buffer fills. Maybe reset the map and return an error code
 int DalsaCamera::getNextImage(cv::Mat *img)
 {
-	//TODO: delete?
+	// Update Counter
 	frameCount++;
-
 	UINT16 status;
 
 	if(!isOpened())
@@ -337,44 +332,20 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 	}
 	
 	// Add frames to the map until the next one is acquired
+	// TODO: Handle overflow
 	while(_reorderingMap.find(_tNextFrameMicroseconds) == _reorderingMap.end())
 	{
 		GEV_BUFFER_OBJECT *nextImage = nextAcquiredImage();
-		cout << "Acquriing new image " << nextImage -> timestamp_lo << endl;		
-		cout << "(expecting)" << _tNextFrameMicroseconds << endl;		
 		_reorderingMap[nextImage->timestamp_lo] = nextImage;
 	}
 
-		// Get the next frame
+	// Get the next frame
 	GEV_BUFFER_OBJECT *imgGev = _reorderingMap[_tNextFrameMicroseconds];
 	_reorderingMap.erase(_tNextFrameMicroseconds);
+	logImg(imgGev);
 
-	cout << "Image acquired" << endl;
-
-	// int dt = img_gev->timestamp_lo - timestamp_prev_frame;
-	// timestamp_prev_frame = img_gev->timestamp_lo;
 	//TODO: handle a reset of next frame
 	_tNextFrameMicroseconds += periodMicroseconds();
-
-	//TODO: Log mode
-	printf("Acquired Image:\n");
-	printf("\tFramecount: %i\n", frameCount);
-	printf("\tTimestamp hi: %i\n", imgGev->timestamp_hi);
-	printf("\tTimestamp low: %i\n", imgGev->timestamp_lo);
-	// printf("\tTime Between Frames: %i\n", dt);
-	printf("\tw: %i\n", imgGev->w);
-	printf("\th: %i\n", imgGev->h);
-	printf("\td: %i\n", imgGev->d);
-	printf("\tformat: %i\n", imgGev->format);
-	printf("\taddress: %x\n", *imgGev->address);
-	printf("\timg_gev->status: %i\n", imgGev->status);
-	printf("\tImage transfered: %i\n", status);
-	printf("\tMap Size: %i\n", (int)_reorderingMap.size());
-
-	time_t tEnd = time(NULL);
-	float avgFramerate = (float)frameCount / ((float) ((long)tEnd-(long)tStart));
-	printf("\tAvg Framerate: %.0f\n", avgFramerate);
-	printf("\n");
 
 	// Debayer the image
     cv::Mat imgCv = cv::Mat(height(), width(), CV_8UC1, imgGev->address);
@@ -389,6 +360,30 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 
 	return 0;
 }
+
+void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
+{
+	if(!debug)
+	{
+		return;
+	}
+
+	printf("Acquired Image:\n");
+	printf("\tTimestamp hi: %i\n", imgGev->timestamp_hi);
+	printf("\tTimestamp low: %i\n", imgGev->timestamp_lo);
+	printf("\tw: %i\n", imgGev->w);
+	printf("\th: %i\n", imgGev->h);
+	printf("\td: %i\n", imgGev->d);
+	printf("\tformat: %i\n", imgGev->format);
+	printf("\taddress: %x\n", *imgGev->address);
+	printf("\timg_gev->status: %i\n", imgGev->status);
+
+	time_t tEnd = time(NULL);
+	float avgFramerate = (float)frameCount / ((float) ((long)tEnd-(long)tStart));
+	printf("\tAvg Framerate: %.0f\n", avgFramerate);
+	printf("\n");
+}
+
 
 // Duration is in seconds
 int DalsaCamera::record(float duration, char filename[])
@@ -429,7 +424,6 @@ int DalsaCamera::periodMicroseconds()
 {
 	return round(1.0/_framerate*1000000.0);
 }
-
 
 
 //TODO: check that the camera is open
