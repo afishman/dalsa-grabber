@@ -30,11 +30,6 @@ using namespace cv;
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 #include "encoder.cpp"
 
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-namespace logging = boost::log;
-
 // How much to rescale the image by in monitor mode (TODO: option?)
 
 milliseconds time_now()
@@ -116,21 +111,33 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 	//TODO: print details of the camera chosen
 	int camIndex = 0;
-	status = GevOpenCamera(&pCamera[camIndex], GevExclusiveMode, &handle);
+	//GEV_CAMERA_HANDLE handle = NULL;
+	status = GevOpenCamera( &pCamera[camIndex], GevExclusiveMode, &handle);
+
+
 
 	GEV_CAMERA_OPTIONS camOptions = {0};
 
 	// Adjust the camera interface options if desired (see the manual)
-	GevGetCameraInterfaceOptions(handle, &camOptions);
+	GevGetCameraInterfaceOptions( handle, &camOptions);
 	camOptions.heartbeat_timeout_ms = 90000;		// For debugging (delay camera timeout while in debugger)
 
-	// These hardcoded values are taken from the genicam_cpp_demo
-	// TODO: settings file?
+	// Some tuning can be done here. (see the manual)
 	camOptions.streamFrame_timeout_ms = 1001;				// Internal timeout for frame reception.
 	camOptions.streamNumFramesBuffered = 4;				// Buffer frames internally.
 	camOptions.streamMemoryLimitMax = 64*1024*1024;		// Adjust packet memory buffering limit.	
 	camOptions.streamPktSize = 9180;							// Adjust the GVSP packet size.
 	camOptions.streamPktDelay = 10;							// Add usecs between packets to pace arrival at NIC.
+
+	// // Assign specific CPUs to threads (affinity) - if required for better performance.
+	// {
+	// 	int numCpus = _GetNumCpus();
+	// 	if (numCpus > 1)
+	// 	{
+	// 		camOptions.streamThreadAffinity = numCpus-1;
+	// 		camOptions.serverThreadAffinity = numCpus-2;
+	// 	}
+	// }
 
 	GevSetCameraInterfaceOptions( handle, &camOptions);
 
@@ -210,24 +217,32 @@ int DalsaCamera::open(int width, int height, float framerate)
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
 	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
 
-	BOOST_LOG_TRIVIAL(info) << "\tCamera Width" << width;
-	BOOST_LOG_TRIVIAL(info) << "\tCamera Height" << height;
-	BOOST_LOG_TRIVIAL(info) << "\tCamera Framerate" << framerate;
-	BOOST_LOG_TRIVIAL(info) << "\tCamera Exposure" << readExposed;
+	printf("Camera Settings: \n");
+	printf("\tWidth: %i\n", width);
+	printf("\tHeight: %i\n", height);
+	printf("\tFramerate: %.1f\n", framerate);
+	printf("\texposureTime (us): %f\n", readExposed);
 
 	_width = width;
 	_height = height;
 	_framerate = framerate;
-	//TODO: exposure
 
 	char value_str[MAX_PATH] = {0};
-	GevGetFeatureValueAsString( handle, "PixelFormat ", &type, MAX_PATH, value_str);
-	BOOST_LOG_TRIVIAL(info) << "\tCamera Pixel Format " << value_str;
+	GevGetFeatureValueAsString( handle, "PixelFormat", &type, MAX_PATH, value_str);
+	printf("\tPixelFormat (str) = %s\n", value_str);
 	
-	// Setup buffers
-	int size = height * width * GetPixelSizeInBytes(format);
-	BOOST_LOG_TRIVIAL(debug) << "\tPixel Size in Bytes " << GetPixelSizeInBytes(format);
+	GevGetFeatureValue(handle, "PixelFormat", &type, sizeof(format), &format);
+	printf("\tPixelFormat (val) = 0x%x\n\n", format); 
 
+	//TODO: Can set advanced Camera settings here such as timeout, packet size etc....
+
+	// Setup buffers
+
+	int size = height * width * GetPixelSizeInBytes(format);
+	printf("Frame Size: %i\n", size);
+	printf("Pixel Size in Bytes: %i\n", GetPixelSizeInBytes(format));
+
+	printf("Allocating memory for buffers...\n");
 	int numBuffers = numBuf;
 	for (int i = 0; i < numBuffers; i++)
 	{
@@ -237,7 +252,8 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 	// Initialise Image Transfer
 	// TODO: Use Sync! It is more thread safe
-	status = GevInitImageTransfer(handle, SynchronousNextEmpty, numBuf, bufAddress);
+	printf("Initialising Image Transfer....\n");
+	status = GevInitImageTransfer( handle, Asynchronous, numBuf, bufAddress);
 	if(status != GEVLIB_OK)
 	{
 		cerr << "Failed to Initiliaze image transfer\n";
@@ -245,6 +261,7 @@ int DalsaCamera::open(int width, int height, float framerate)
 	}
 
 	// TODO: Offload this to record/start functions?
+	printf("Starting Image Transfer....\n");
 	status = GevStartImageTransfer(handle, -1);
 	if(status != GEVLIB_OK)
 	{
@@ -261,6 +278,7 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 	return 0;
 }
+
 
 GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage(){
 	GEV_BUFFER_OBJECT* imgGev = NULL;

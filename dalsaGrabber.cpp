@@ -14,10 +14,6 @@ using namespace cv;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-
 //TODO: program option
 const float monitorScale = 0.25;
 
@@ -48,7 +44,7 @@ void monitor(int width, int height, float framerate)
 {
     // Open Camera
     DalsaCamera camera = DalsaCamera();
-    if(!camera.open(width, height, framerate))
+    if(camera.open(width, height, framerate))
     {
         cerr << "Failed to open camera";
         return;
@@ -71,7 +67,7 @@ void monitor(int width, int height, float framerate)
         cv::resize(img, displayImg, cv::Size(), monitorScale, monitorScale);
 
 
-        imshow(windowName, img);
+        imshow(windowName, displayImg);
         img.release();
         displayImg.release();
 

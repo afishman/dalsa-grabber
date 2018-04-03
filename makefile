@@ -45,14 +45,14 @@ all: dalsa_grabber
 #	echo fooooo
 
 %.o : %.c $(DEPS)
-	$(CC) -DBOOST_LOG_DYN_LINK -I. $(INC_PATH) $(C_COMPILE_OPTIONS) $(ARCH_OPTIONS) -c $< -o $@ -lboost_log -lpthread
+	$(CC) -I. $(INC_PATH) $(C_COMPILE_OPTIONS) $(ARCH_OPTIONS) -c $< -o $@
 
 %.o : %.cpp $(DEPS)
-	$(CC) -DBOOST_LOG_DYN_LINK -I. $(INC_PATH) $(CXX_COMPILE_OPTIONS) $(ARCH_OPTIONS) -c $< -o $@ -std=c++11 -lboost_log -lpthread
+	$(CC) -I. $(INC_PATH) $(CXX_COMPILE_OPTIONS) $(ARCH_OPTIONS) -c $< -o $@ -std=c++11
 
 
 dalsa_grabber : $(OBJS) 
-	$(CC) -DBOOST_LOG_DYN_LINK -g $(ARCH_LINK_OPTIONS) -std=c++11 -o dalsaGrabber $(OBJS) $(OPENCV) $(LCLLIBS) $(GENICAM_LIBS) -L$(ARCHLIBDIR) -lstdc++ -lm -lboost_system -lboost_program_options -lboost_thread -lboost_log -lpthread
+	$(CC) -g $(ARCH_LINK_OPTIONS) -std=c++11 -o dalsaGrabber $(OBJS) $(OPENCV) $(LCLLIBS) $(GENICAM_LIBS) -L$(ARCHLIBDIR) -lstdc++ -lm -lboost_system -lboost_program_options -lboost_thread
 
 clean:
 	rm *.o dalsaGrabber 
