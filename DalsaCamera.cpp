@@ -206,42 +206,26 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 
 	// Get and display camera settings
-	UINT32 format=0;
 	int type;	
 
 	// TODO: DRY this up
 	// TODO: Assert the retrieved value matches the one passed in
-	// TODO: Log mode only?
 	float readExposed = -1;
 	GevGetFeatureValue(handle, "Width", &type, sizeof(width), &width);
 	GevGetFeatureValue(handle, "Height", &type, sizeof(height), &height);
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
 	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
 
-	printf("Camera Settings: \n");
-	printf("\tWidth: %i\n", width);
-	printf("\tHeight: %i\n", height);
-	printf("\tFramerate: %.1f\n", framerate);
-	printf("\texposureTime (us): %f\n", readExposed);
-
 	_width = width;
 	_height = height;
 	_framerate = framerate;
+	_exposure = readExposed;
 
-	char value_str[MAX_PATH] = {0};
-	GevGetFeatureValueAsString( handle, "PixelFormat", &type, MAX_PATH, value_str);
-	printf("\tPixelFormat (str) = %s\n", value_str);
-	
+
+	// Allocate buffers
+	UINT32 format=0;
 	GevGetFeatureValue(handle, "PixelFormat", &type, sizeof(format), &format);
-	printf("\tPixelFormat (val) = 0x%x\n\n", format); 
-
-	//TODO: Can set advanced Camera settings here such as timeout, packet size etc....
-
-	// Setup buffers
 	int size = height * width * GetPixelSizeInBytes(format);
-	printf("Frame Size: %i\n", size);
-	printf("Pixel Size in Bytes: %i\n", GetPixelSizeInBytes(format));
-
 	int numBuffers = numBuf;
 	for (int i = 0; i < numBuffers; i++)
 	{
@@ -276,8 +260,29 @@ int DalsaCamera::open(int width, int height, float framerate)
 	return 0;
 }
 
+void DalsaCamera::logCamera()
+{
+	if(handle == NULL || !debug)
+	{
+		return;
+	}
 
-GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage(){
+	printf("Camera Settings: \n");
+	printf("\tWidth: %i\n", _width);
+	printf("\tHeight: %i\n", _height);
+	printf("\tFramerate: %.1f\n", _framerate);
+	printf("\texposureTime (us): %f\n", _exposure);
+
+	int type;	
+	char value_str[MAX_PATH] = {0};
+	GevGetFeatureValueAsString(handle, "PixelFormat", &type, MAX_PATH, value_str);
+	printf("\tPixelFormat (str) = %s\n", value_str);
+
+}
+
+
+GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
+{
 	GEV_BUFFER_OBJECT* imgGev = NULL;
 	int status;
 	

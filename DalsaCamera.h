@@ -21,13 +21,15 @@ class DalsaCamera
 		time_t tStart;
 
 		int _width, _height;
-		float _framerate;
+		float _framerate, _exposure;
+		
 		GEV_BUFFER_OBJECT* nextAcquiredImage();
 
 		std::map<uint, GEV_BUFFER_OBJECT*> _reorderingMap;
 		uint _tNextFrameMicroseconds;
-		
+
 		void logImg(GEV_BUFFER_OBJECT*);
+		void logCamera();
 
 
  	public:
