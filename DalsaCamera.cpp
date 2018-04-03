@@ -30,8 +30,9 @@ using namespace cv;
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 #include "encoder.cpp"
 
-// How much to rescale the image by in monitor mode (TODO: option?)
+#include <signal.h>
 
+// How much to rescale the image by in monitor mode (TODO: option?)
 milliseconds time_now()
 {
 	return duration_cast<milliseconds>(

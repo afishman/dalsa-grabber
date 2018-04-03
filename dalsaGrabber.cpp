@@ -17,6 +17,19 @@ namespace po = boost::program_options;
 //TODO: program option
 const float monitorScale = 0.25;
 
+DalsaCamera *DALSA_CAMERA = NULL;
+void sigintHandler(int s)
+{
+    printf("Shutting down camera");
+
+    if(DALSA_CAMERA != NULL)
+    {
+        DALSA_CAMERA->close();
+    }
+
+    exit(1); 
+}
+
 
 void printHelp(po::options_description desc)
 {
@@ -25,13 +38,13 @@ void printHelp(po::options_description desc)
 
 void speedTest(int width, int height, float framerate)
 {
-    DalsaCamera camera = DalsaCamera();
-    camera.open(width, height, framerate);
+    DALSA_CAMERA = new DalsaCamera();
+    DALSA_CAMERA->open(width, height, framerate);
     cv::Mat img;
     
     while(true)
     {
-        if(camera.getNextImage(&img))
+        if(DALSA_CAMERA->getNextImage(&img))
         {
             break;
         }
@@ -104,7 +117,7 @@ int main(int argc, char* argv[])
     /*
         A Simple console app to record and test
     */
-
+    signal(SIGINT, sigintHandler);
 
     // Global options
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
