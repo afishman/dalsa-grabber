@@ -15,30 +15,17 @@ using namespace std;
 #include <chrono>
 using namespace std::chrono;
  
-
 #include <opencv2/opencv.hpp>
 using namespace cv;
-// Typically found in /opt/genicam_v3_0/library/CPP/include/GenApi/
-//#include "GenApi/GenApi.h"		//!< GenApi lib definitions.
 
-// found in /usr/dalsa/GigeV/include
-#include "gevapi.h"				//!< GEV lib definitions.
+// GEV lib definitions usually found in /usr/dalsa/GigeV/include
+#include "gevapi.h"				
 
 #include <time.h>
 
 #include "DalsaCamera.h"
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 #include "encoder.cpp"
-
-#include <signal.h>
-
-// How much to rescale the image by in monitor mode (TODO: option?)
-milliseconds time_now()
-{
-	return duration_cast<milliseconds>(
-    	system_clock::now().time_since_epoch()
-	);
-}
 
 DalsaCamera::DalsaCamera(bool debugMode=true)
 {
@@ -74,20 +61,13 @@ int DalsaCamera::isOpened()
 	return _isOpened;
 }
 
-int DalsaCamera::open(int width, int height, float framerate)
-// Suggested settings:
-//		width: 2560
-//		height: 2048
-//		framerate: 20
+int DalsaCamera::open(int width, int height, float framerate, float exposureTime=10000)
 {
-	// TODO: Hardcoded value
-	float exposureTime = 10000; //100000;
-
 	// Set default options for the library.
 	GEVLIB_CONFIG_OPTIONS options = {0};
 	GevGetLibraryConfigOptions( &options);
 	options.logLevel = GEV_LOG_LEVEL_NORMAL;
-	GevSetLibraryConfigOptions( &options);
+	GevSetLibraryConfigOptions(&options);
 
 	// DISCOVER Cameras
 	// Get all the IP addresses of attached network cards.
@@ -101,47 +81,32 @@ int DalsaCamera::open(int width, int height, float framerate)
 
 	GEV_DEVICE_INTERFACE  pCamera[maxCameras] = {0};
 	status = GevGetCameraList( pCamera, maxCameras, &numCameras);
-	printf("%d camera(s) on the network\n", numCameras);
 
-	//TODO goto fail to ensure things are closed
 	if(!numCameras)
 	{
 		cerr << "ERROR: Could not find any cameras\n";
 		return 1;
 	}
 
-	//TODO: print details of the camera chosen
+	// Open first camera
+	// TODO: Check status
+	// TODO: Handle multiple cmaeras
 	int camIndex = 0;
-	//GEV_CAMERA_HANDLE handle = NULL;
-	status = GevOpenCamera( &pCamera[camIndex], GevExclusiveMode, &handle);
+	status = GevOpenCamera(&pCamera[0], GevExclusiveMode, &handle);
 
-
-
+	// Settings taken from genicam_cpp_demo from GigE-V framework
+	// TODO: offload to settings file?
 	GEV_CAMERA_OPTIONS camOptions = {0};
+	GevGetCameraInterfaceOptions(handle, &camOptions);
 
-	// Adjust the camera interface options if desired (see the manual)
-	GevGetCameraInterfaceOptions( handle, &camOptions);
 	camOptions.heartbeat_timeout_ms = 90000;		// For debugging (delay camera timeout while in debugger)
-
-	// Some tuning can be done here. (see the manual)
 	camOptions.streamFrame_timeout_ms = 1001;				// Internal timeout for frame reception.
 	camOptions.streamNumFramesBuffered = 4;				// Buffer frames internally.
 	camOptions.streamMemoryLimitMax = 64*1024*1024;		// Adjust packet memory buffering limit.	
 	camOptions.streamPktSize = 9180;							// Adjust the GVSP packet size.
 	camOptions.streamPktDelay = 10;							// Add usecs between packets to pace arrival at NIC.
-
-	// // Assign specific CPUs to threads (affinity) - if required for better performance.
-	// {
-	// 	int numCpus = _GetNumCpus();
-	// 	if (numCpus > 1)
-	// 	{
-	// 		camOptions.streamThreadAffinity = numCpus-1;
-	// 		camOptions.serverThreadAffinity = numCpus-2;
-	// 	}
-	// }
-
-	GevSetCameraInterfaceOptions( handle, &camOptions);
-
+	
+	GevSetCameraInterfaceOptions(handle, &camOptions);
 
 	//TODO goto fail
 	if(status != GEVLIB_OK)
@@ -204,13 +169,12 @@ int DalsaCamera::open(int width, int height, float framerate)
 		return 1;
 	}
 
-
-	// Get and display camera settings
-	int type;	
-
+	// Get camera settings
 	// TODO: DRY this up
 	// TODO: Assert the retrieved value matches the one passed in
+	int type;	
 	float readExposed = -1;
+
 	GevGetFeatureValue(handle, "Width", &type, sizeof(width), &width);
 	GevGetFeatureValue(handle, "Height", &type, sizeof(height), &height);
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
@@ -221,6 +185,8 @@ int DalsaCamera::open(int width, int height, float framerate)
 	_framerate = framerate;
 	_exposure = readExposed;
 
+	// Log it!
+	logCamera();
 
 	// Allocate buffers
 	UINT32 format=0;
@@ -277,7 +243,6 @@ void DalsaCamera::logCamera()
 	char value_str[MAX_PATH] = {0};
 	GevGetFeatureValueAsString(handle, "PixelFormat", &type, MAX_PATH, value_str);
 	printf("\tPixelFormat (str) = %s\n", value_str);
-
 }
 
 
@@ -374,8 +339,8 @@ void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 	}
 
 	printf("Acquired Image:\n");
-	printf("\tTimestamp hi: %i\n", imgGev->timestamp_hi);
-	printf("\tTimestamp low: %i\n", imgGev->timestamp_lo);
+	printf("\tTimestamp hi: %u\n", imgGev->timestamp_hi);
+	printf("\tTimestamp low: %u\n", imgGev->timestamp_lo);
 	printf("\tw: %i\n", imgGev->w);
 	printf("\th: %i\n", imgGev->h);
 	printf("\td: %i\n", imgGev->d);
@@ -388,7 +353,6 @@ void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 	printf("\tAvg Framerate: %.0f\n", avgFramerate);
 	printf("\n");
 }
-
 
 // Duration is in seconds
 int DalsaCamera::record(float duration, char filename[])
@@ -403,25 +367,18 @@ int DalsaCamera::record(float duration, char filename[])
     // Collect the frames
 	for(int i=0; i<numFrames; i++)
 	{
-		cout << "before write frame" << endl;
-		
 		cv::Mat img;
 		getNextImage(&img);
 
 		// Write the current frame to the mp4 file
-		milliseconds renderStart = time_now();
 		if (!writer.writeFrame(img))
 		{
 			fprintf( stderr, "Could not write frame\n" );
 			return -2;
 		}
-
-		milliseconds renderEnd = time_now();
-		cout << "Loop Time ms: " << std::to_string((renderEnd - renderStart).count()) << endl;
 	}
 
 	writer.close();
-
 }
 
 // In Microseconds
@@ -430,10 +387,13 @@ int DalsaCamera::periodMicroseconds()
 	return round(1.0/_framerate*1000000.0);
 }
 
-
-//TODO: check that the camera is open
 int DalsaCamera::close() 
 {
+	if(!_isOpened)
+	{
+		return 0;
+	}
+
 	UINT16 status;
 
 	//TODO: GOTO Fail

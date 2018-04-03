@@ -22,7 +22,7 @@ class DalsaCamera
 
 		int _width, _height;
 		float _framerate, _exposure;
-		
+
 		GEV_BUFFER_OBJECT* nextAcquiredImage();
 
 		std::map<uint, GEV_BUFFER_OBJECT*> _reorderingMap;
@@ -38,7 +38,7 @@ class DalsaCamera
 		int height();
 		float framerate();
 		int isOpened();
-		int open(int width, int height, float framerate);
+		int open(int width, int height, float framerate, float exposureTime);
 		int getNextImage(cv::Mat *img);
 		int close();
 		int periodMicroseconds();
