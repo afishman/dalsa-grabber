@@ -85,20 +85,18 @@ class VideoEncoder
         {
             _displaying = true;
 
-            // TODO: This try-catch is careless and sloppy, but it throws an exception on the last frame
-            try
+            if(!displayImg.empty())
             {
                 imshow(windowName, displayImg);
-                int key = waitKey(1);
-                if((char) key == 'q') 
-                {
-                    cout << "Quitting display...\n";
-                }
-
-                displayImg.release();
             }
-            catch(...){}
 
+            int key = waitKey(1);
+            if((char) key == 'q') 
+            {
+                cout << "Quitting display...\n";
+            }
+
+            displayImg.release();
             _displaying = false;
         }
 
