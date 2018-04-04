@@ -203,7 +203,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}	
 
-	// Get the first image so _tNextFrameMicroseconds can be set
+	// Obtain the first image so _tNextFrameMicroseconds can be set
 	GEV_BUFFER_OBJECT* img_obj = nextAcquiredImage();
 	_tNextFrameMicroseconds = img_obj->timestamp_lo + periodMicroseconds();
 
@@ -257,7 +257,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 		cerr << "GevWaitForNextImage returned " << status << "\n";
 		throw "next_acquired_image failure";
 	}
-	if(imgGev->status !=0)
+	if(imgGev->status != 0)
 	{
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "img->status = " << imgGev->status << "\n";
@@ -279,10 +279,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 //     buffer fills. Maybe reset the map and return an error code
 int DalsaCamera::getNextImage(cv::Mat *img)
 {
-	// Update Counter
-	frameCount++;
-	UINT16 status;
-
+	// Check for camera state
 	if(!isOpened())
 	{
 		cerr << "open camera before calling get_next_image";
@@ -321,6 +318,9 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 
 void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 {
+	// Update Counter
+	frameCount++;
+
 	if(!debug)
 	{
 		return;
