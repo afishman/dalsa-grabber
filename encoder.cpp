@@ -24,6 +24,7 @@ using namespace std::chrono;
 // As a proportion of the image size (TODO: option?)
 #define QUEUE_CAPACITY 64
 #define DISPLAY_SCALE 0.25
+#define FFMPEG_OPTIONS "-y -crf 17 -codec:v libx264 -preset ultrafast"
 
 milliseconds time_ms()
 {
@@ -135,7 +136,7 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
     _debug = debug;
 
     // TODO: an option for this
-    char ffmpegOptions[] = "-y -crf 17 -codec:v libx264 -preset ultrafast";
+    char ffmpegOptions[] = FFMPEG_OPTIONS;
     _writer.DebugMode = true;
     _writer.Create(filename, width, height, framerate, ffmpegOptions);
 
