@@ -74,8 +74,13 @@ class VideoEncoder
         {
             writeCount++;
 
+            if(!_debug)
+            {
+                return;
+            }
+
             cout << "writeQueue() # " << writeCount << endl;
-            cout << "\tencoder stack available: " << _queue.read_available() << endl;
+            cout << "\tencoder queue size: " << _queue.read_available() << endl;
         }
 
         // TODO: Quit on 'q'
