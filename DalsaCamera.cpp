@@ -361,6 +361,13 @@ int DalsaCamera::record(float duration, char filename[])
     // Collect the frames
 	for(int i=0; i<numFrames; i++)
 	{
+		cout << "\rElasped: " 
+			<< (int) (((float)i+1)/_framerate) 
+			<< "s of " 
+			<< ceil(((float)numFrames)/_framerate) 
+			<< "s"
+			<< std::flush;
+
 		cv::Mat img;
 		getNextImage(&img);
 
