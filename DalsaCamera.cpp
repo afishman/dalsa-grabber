@@ -251,7 +251,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 	{
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "NULL Image Object.\n";
-		cerr << "possibly caused by filling up GigE-V buffers";
+		cerr << "possibly caused by filling up GigE-V buffers\n";
 		throw "next_acquired_image failure";
 	}
 	if(status != GEVLIB_OK)
@@ -264,6 +264,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 	{
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "img->status = " << imgGev->status << "\n";
+		cerr << "Could be a bandwidth problem\n"
 		throw "next_acquired_image failure";
 	}
 	// Check image data is actually there
