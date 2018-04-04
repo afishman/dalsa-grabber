@@ -25,6 +25,7 @@ using namespace std::chrono;
 #define QUEUE_CAPACITY 64
 #define DISPLAY_SCALE 0.25
 #define FFMPEG_OPTIONS "-y -crf 17 -codec:v libx264 -preset ultrafast"
+#define WINDOW_NAME "Dalsa Monitor"
 
 class VideoEncoder 
 {
@@ -87,7 +88,7 @@ class VideoEncoder
 
             if(!displayImg.empty())
             {
-                imshow(windowName, displayImg);
+                imshow(WINDOW_NAME, displayImg);
             }
 
             int key = waitKey(1);
@@ -101,8 +102,6 @@ class VideoEncoder
         }
 
     public:
-        const char windowName[14] = "Dalsa Monitor";
-
         VideoEncoder(char*, int, int, int, bool);
 
         //TODO feedback if something has failed
@@ -138,7 +137,7 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
 
     // Monitor Window
     // TODO: An option to disable this
-    namedWindow(windowName, WINDOW_AUTOSIZE );
+    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
 }
 
 #endif /* __ENCODER_CPP__ */
