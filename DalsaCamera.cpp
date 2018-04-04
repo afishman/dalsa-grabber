@@ -353,7 +353,6 @@ void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 int DalsaCamera::record(float duration, char filename[])
 {
 	// TODO: Make this configuration more accessible
-	char ffmpegOptions[] = "-y -codec:v libx264 -preset veryfast";
 	int numFrames = round(duration * float(_framerate));
 
 	// Initialise video writer
