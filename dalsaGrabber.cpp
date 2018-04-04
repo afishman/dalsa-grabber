@@ -160,61 +160,70 @@ int main(int argc, char* argv[])
     }
 
     // Run command
-    if(command == "speed-test")
+    // For graceful failing, run the sigint handler on exception
+    try
     {
-        speedTest(DALSA_CAMERA);
-    }
-    else if(command == "monitor")
-    {
-        monitor(DALSA_CAMERA);
-    }
-    else if(command == "record")
-    {
-        // Record Options
-        po::options_description record_desc("record options");
-        record_desc.add_options()
-            ("duration", po::value<float>(), "Record duration in seconds")
-            ("filename", po::value<std::string>(), "filename (currently only .mp4)")
-        ;
-
-        // Collect all the unrecognized options from the first pass. This will include the
-        // (positional) command name, so we need to erase that.
-        std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-        opts.erase(opts.begin());
-
-        // Record positional args
-        po::positional_options_description record_pos_args;
-        record_pos_args
-        .add("duration", 1)
-        .add("filename", 1);
-
-        // Parse again...
-        po::store(po::command_line_parser(opts).options(record_desc).positional(record_pos_args).run(), vm);
-
-        float duration;
-        std::string filenameStr;
-        try
+        if(command == "speed-test")
         {
-            duration = vm["duration"].as<float>();
-            filenameStr = vm["filename"].as<std::string>();
+            speedTest(DALSA_CAMERA);
         }
-        catch(...) //TODO: Lazy exception handling, check for type
+        else if(command == "monitor")
         {
-            cerr << "ERROR: you need provide duration and filename with record option";
+            monitor(DALSA_CAMERA);
+        }
+        else if(command == "record")
+        {
+            // Record Options
+            po::options_description record_desc("record options");
+            record_desc.add_options()
+                ("duration", po::value<float>(), "Record duration in seconds")
+                ("filename", po::value<std::string>(), "filename (currently only .mp4)")
+            ;
+
+            // Collect all the unrecognized options from the first pass. This will include the
+            // (positional) command name, so we need to erase that.
+            std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+            opts.erase(opts.begin());
+
+            // Record positional args
+            po::positional_options_description record_pos_args;
+            record_pos_args
+            .add("duration", 1)
+            .add("filename", 1);
+
+            // Parse again...
+            po::store(po::command_line_parser(opts).options(record_desc).positional(record_pos_args).run(), vm);
+
+            float duration;
+            std::string filenameStr;
+            try
+            {
+                duration = vm["duration"].as<float>();
+                filenameStr = vm["filename"].as<std::string>();
+            }
+            catch(...) //TODO: Lazy exception handling, check for type
+            {
+                cerr << "ERROR: you need provide duration and filename with record option";
+                printHelp(globalArgs);
+            }
+
+            // Convert to char array
+            char filename[filenameStr.length()+1];
+            strcpy(filename, filenameStr.c_str());
+
+            record(DALSA_CAMERA, duration, filename);
+        }
+        else
+        {
+            cerr << "COMMAND UNRECOGNISED: " << command << endl;
             printHelp(globalArgs);
         }
-
-        // Convert to char array
-        char filename[filenameStr.length()+1];
-        strcpy(filename, filenameStr.c_str());
-
-        record(DALSA_CAMERA, duration, filename);
     }
-    else
+    catch(...)
     {
-        cerr << "COMMAND UNRECOGNISED: " << command << endl;
-        printHelp(globalArgs);
+        sigintHandler(0);
     }
+
 
     return 0;
 }
