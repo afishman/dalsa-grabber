@@ -98,10 +98,11 @@ void record(DalsaCamera *camera, float duration, char filename[])
 int main(int argc, char* argv[])
 {
     /*
-        A Simple console app to record and test
+        A Simple console app to record and monitor using a Teledyne Dalsa GigE-V camera
     */
-    signal(SIGINT, sigintHandler);
 
+    // For graceful failing with a crtl+c interrupt 
+    signal(SIGINT, sigintHandler);
 
     // Global options
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
