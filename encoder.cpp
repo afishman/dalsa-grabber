@@ -35,7 +35,8 @@ milliseconds time_ms()
 class VideoEncoder 
 {
     private:
-        int count;
+        bool _debug;
+        int writeCount;
         VideoIO _writer;
         boost::atomic<bool> _done;
         boost::thread* _encoderThread;
@@ -56,11 +57,8 @@ class VideoEncoder
             cv::Mat img;
             while (_queue.pop(img))
             {
-                // TODO: handle status
-                count++;
-                milliseconds renderStart = time_ms();
-
                 // Pass to ffmpeg
+                // TODO: handle status
                 int status = _writer.WriteFrame(img);
 
                 // Pass to display
@@ -69,19 +67,21 @@ class VideoEncoder
                 {
                     cv::resize(img, displayImg, cv::Size(), DISPLAY_SCALE, DISPLAY_SCALE);
                     
-                    // TODO: Remove from heap?
+                    // TODO: Remove from heap at some point?
                     boost::thread* displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
                 }
 
-                milliseconds renderEnd = time_ms();
-
-                auto renderTime = (renderEnd - renderStart);
-                cout << "writeQueue() # " << count << endl;
-                cout << "\twriteQueue time: " << std::to_string(renderTime.count()) << endl;
-                cout << "\tencoder stack available: " << _queue.read_available() << endl;
-
+                logFrame();
                 img.release();
             }
+        }
+
+        void logFrame()
+        {
+            writeCount++;
+
+            cout << "writeQueue() # " << writeCount << endl;
+            cout << "\tencoder stack available: " << _queue.read_available() << endl;
         }
 
         // TODO: Quit on 'q'
@@ -110,19 +110,15 @@ class VideoEncoder
         }
 
     public:
-        int writeFrameCount = 0;
         const char windowName[14] = "Dalsa Monitor";
 
-        VideoEncoder(char*, int, int, int);
+        VideoEncoder(char*, int, int, int, bool);
 
         //TODO feedback if something has failed
         int writeFrame(cv::Mat img)
         {
-            writeFrameCount++;
-
-            milliseconds renderStart = time_ms();
+            // TODO: A while loop missing here?
             _queue.push(img);
-            milliseconds renderEnd = time_ms();
         }
 
         // Hangs until all frames have been passed to ffmpeg
@@ -133,9 +129,10 @@ class VideoEncoder
         }
 };
 
-VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate)
+VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate, bool debug=false)
 {
-    count = 0;
+    writeCount = 0;
+    _debug = debug;
 
     // TODO: an option for this
     char ffmpegOptions[] = "-y -crf 17 -codec:v libx264 -preset ultrafast";
