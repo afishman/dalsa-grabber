@@ -34,15 +34,12 @@ void printHelp(po::options_description desc)
     cout << desc << endl;
 }
 
-void speedTest(int width, int height, float framerate)
+void speedTest(DalsaCamera *camera)
 {
-    DALSA_CAMERA = new DalsaCamera();
-    DALSA_CAMERA->open(width, height, framerate);
-    cv::Mat img;
-    
+    cv::Mat img;    
     while(true)
     {
-        if(DALSA_CAMERA->getNextImage(&img))
+        if(camera->getNextImage(&img))
         {
             break;
         }
@@ -51,16 +48,8 @@ void speedTest(int width, int height, float framerate)
     }
 }
 
-void monitor(int width, int height, float framerate)
+void monitor(DalsaCamera *camera)
 {
-    // Open Camera
-    DALSA_CAMERA = new DalsaCamera();
-    if(DALSA_CAMERA->open(width, height, framerate))
-    {
-        cerr << "Failed to open camera";
-        return;
-    }
-
     // Setup OpenCV display window
     char windowName[] = "Dalsa Monitor";
     namedWindow(windowName, WINDOW_AUTOSIZE );
@@ -69,7 +58,7 @@ void monitor(int width, int height, float framerate)
     cv::Mat img;
     for(;;)
     {
-        if(DALSA_CAMERA->getNextImage(&img))
+        if(camera->getNextImage(&img))
         {
             break;
         }
@@ -90,23 +79,15 @@ void monitor(int width, int height, float framerate)
         } 
     }
 
-    DALSA_CAMERA->close();
+    camera->close();
     cvDestroyWindow(windowName);
 }
 
 
-void record(int width, int height, float framerate, float duration, char filename[])
+void record(DalsaCamera *camera, float duration, char filename[])
 {
-    DALSA_CAMERA = new DalsaCamera();
-    if(!DALSA_CAMERA->open(width, height, framerate))
-    {
-        cerr << "Failed to open camera";
-        return;
-    } 
-    
-
-    DALSA_CAMERA->record(duration, filename);       
-    DALSA_CAMERA->close();
+    camera->record(duration, filename);       
+    camera->close();
 }
 
 
@@ -119,6 +100,7 @@ int main(int argc, char* argv[])
 
     // Global options
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
+    // TODO: debug option
     po::options_description globalArgs("Global options");
     globalArgs.add_options()
         ("command", po::value<std::string>(), "record <seconds> <filename> | monitor | speed-test")
@@ -165,13 +147,22 @@ int main(int argc, char* argv[])
     int width = vm["width"].as<int>();
     int height = vm["height"].as<int>();
 
+    // Create Camera
+    DALSA_CAMERA = new DalsaCamera();
+    if(DALSA_CAMERA->open(width, height, framerate))
+    {
+        cerr << "Failed to open camera";
+        return 0;
+    }
+
+    // Choose command
     if(command == "speed-test")
     {
-        speedTest(width, height, framerate);
+        speedTest(DALSA_CAMERA);
     }
     else if(command == "monitor")
     {
-        monitor(width, height, framerate);
+        monitor(DALSA_CAMERA);
     }
     else if(command == "record")
     {
@@ -213,7 +204,7 @@ int main(int argc, char* argv[])
         char filename[filenameStr.length()+1];
         strcpy(filename, filenameStr.c_str());
 
-        record(width, height, framerate, duration, filename);
+        record(DALSA_CAMERA, duration, filename);
     }
     else
     {

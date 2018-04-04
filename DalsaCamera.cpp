@@ -28,6 +28,8 @@ using namespace cv;
 #include "encoder.cpp"
 
 #define NUM_BUF 64
+// timeout during image acuqisition
+#define TIMEOUT_US 10000
 
 DalsaCamera::DalsaCamera(bool debugMode=true)
 {
@@ -102,6 +104,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 
 	// Settings taken from genicam_cpp_demo from GigE-V framework
 	// TODO: offload to settings file?
+	// TODO: does it work reliably without these settings?
 	GEV_CAMERA_OPTIONS camOptions = {0};
 	GevGetCameraInterfaceOptions(handle, &camOptions);
 
@@ -243,7 +246,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 	GEV_BUFFER_OBJECT* imgGev = NULL;
 	int status;
 	
-	status = GevWaitForNextImage(handle, &imgGev, 10000);
+	status = GevWaitForNextImage(handle, &imgGev, TIMEOUT_US);
 
 	// Check that we have received data ok, 
 	// TODO: Nicer to put in next_acquired_image
@@ -264,7 +267,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 	{
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "img->status = " << imgGev->status << "\n";
-		cerr << "Could be a bandwidth problem\n"
+		cerr << "Could be a bandwidth problem\n";
 		throw "next_acquired_image failure";
 	}
 	// Check image data is actually there
