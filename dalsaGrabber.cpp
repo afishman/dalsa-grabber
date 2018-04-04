@@ -26,7 +26,7 @@ void sigintHandler(int s)
         DALSA_CAMERA->close();
     }
 
-    cvDestroyWindow(WINDOW_NAME);
+    cvDestroyAllWindows();
     exit(1); 
 }
 
