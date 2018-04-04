@@ -26,13 +26,6 @@ using namespace std::chrono;
 #define DISPLAY_SCALE 0.25
 #define FFMPEG_OPTIONS "-y -crf 17 -codec:v libx264 -preset ultrafast"
 
-milliseconds time_ms()
-{
-    return duration_cast< milliseconds >(
-        system_clock::now().time_since_epoch()
-    );
-}
-
 class VideoEncoder 
 {
     private:
@@ -63,7 +56,6 @@ class VideoEncoder
                 int status = _writer.WriteFrame(img);
 
                 // Pass to display
-                auto cloneStart = time_ms();
                 if(!_displaying)
                 {
                     cv::resize(img, displayImg, cv::Size(), DISPLAY_SCALE, DISPLAY_SCALE);
