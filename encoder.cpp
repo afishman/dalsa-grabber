@@ -47,7 +47,7 @@ class VideoEncoder
 
         void ffmpegWorker(void)
         {
-            // int value;
+            // TODO: CPU hungry thread?
             while (!_done) 
             {
                 writeQueue();
@@ -140,12 +140,15 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
 {
     count = 0;
 
+    // TODO: an option for this
     char ffmpegOptions[] = "-y -crf 17 -codec:v libx264 -preset ultrafast";
     _writer.DebugMode = true;
     _writer.Create(filename, width, height, framerate, ffmpegOptions);
 
     // Start thread
     _done = false;
+
+    // TODO: Delete after join?
     _encoderThread = new boost::thread(boost::bind(&VideoEncoder::ffmpegWorker, this));
 
     // Monitor Window
