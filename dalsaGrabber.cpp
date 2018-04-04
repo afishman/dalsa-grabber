@@ -18,6 +18,7 @@ namespace po = boost::program_options;
 #define MONITOR_SCALE 0.25
 #define WINDOW_NAME "Dalsa Monitor"
 
+// For Graceful failing
 DalsaCamera *DALSA_CAMERA = NULL;
 void sigintHandler(int s)
 {
@@ -30,12 +31,13 @@ void sigintHandler(int s)
     exit(1); 
 }
 
-
+// Boost Program Options help
 void printHelp(po::options_description desc)
 {
     cout << desc << endl;
 }
 
+// Test the speed of your camera
 void speedTest(DalsaCamera *camera)
 {
     cv::Mat img;    
@@ -50,6 +52,7 @@ void speedTest(DalsaCamera *camera)
     }
 }
 
+// Monitor without record
 void monitor(DalsaCamera *camera)
 {
     // Setup OpenCV display window
@@ -84,7 +87,7 @@ void monitor(DalsaCamera *camera)
     cvDestroyWindow(WINDOW_NAME);
 }
 
-
+// Record some video
 void record(DalsaCamera *camera, float duration, char filename[])
 {
     camera->record(duration, filename);       
