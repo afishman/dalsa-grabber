@@ -14,8 +14,8 @@ using namespace cv;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-//TODO: program option
-const float monitorScale = 0.25;
+//TODO: program option?
+#define MONITOR_SCALE 0.25
 
 DalsaCamera *DALSA_CAMERA = NULL;
 void sigintHandler(int s)
@@ -75,7 +75,7 @@ void monitor(int width, int height, float framerate)
         }
 
         cv::Mat displayImg;
-        cv::resize(img, displayImg, cv::Size(), monitorScale, monitorScale);
+        cv::resize(img, displayImg, cv::Size(), MONITOR_SCALE, MONITOR_SCALE);
 
 
         imshow(windowName, displayImg);
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
     po::options_description globalArgs("Global options");
     globalArgs.add_options()
-        ("command", po::value<std::string>(), "speed-test | record <seconds> | monitor")
+        ("command", po::value<std::string>(), "record <seconds> <filename> | monitor | speed-test")
         ("subargs", po::value<std::vector<std::string> >(), "Sub args if required")
         ("framerate", po::value<float>()->default_value(29), "max 29fps")
         ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
@@ -205,7 +205,7 @@ int main(int argc, char* argv[])
         }
         catch(...) //TODO: Lazy exception handling, check for type
         {
-            cerr << "ERROR: you need provide duration and filename with record";
+            cerr << "ERROR: you need provide duration and filename with record option";
             printHelp(globalArgs);
         }
 

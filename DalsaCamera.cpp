@@ -27,11 +27,14 @@ using namespace cv;
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 #include "encoder.cpp"
 
+#define NUM_BUF 64
+
 DalsaCamera::DalsaCamera(bool debugMode=true)
 {
 	//TODO: hardcoded values arrr baaaad
-	numBuf = 64;
+	numBuf = NUM_BUF;
 	bufAddress = new PUINT8[numBuf];
+
 	frameCount = 0;
 	timestampPrevFrame = -1;
 	debug = debugMode;
@@ -404,6 +407,8 @@ int DalsaCamera::close()
 	// must close API even on error	
 	printf("Closing socket API...\n");
 	_CloseSocketAPI ();	
+
+	//TODO: Deallocate buffers
 
 	_isOpened = 0;
 	return status;

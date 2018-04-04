@@ -21,11 +21,9 @@ using namespace std::chrono;
 
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 
-
-const int queueCapacity = 64;
-
 // As a proportion of the image size (TODO: option?)
-const float displayScale = 0.25;
+#define QUEUE_CAPACITY 64
+#define DISPLAY_SCALE 0.25
 
 milliseconds time_ms()
 {
@@ -34,8 +32,6 @@ milliseconds time_ms()
     );
 }
 
-
-
 class VideoEncoder 
 {
     private:
@@ -43,7 +39,7 @@ class VideoEncoder
         VideoIO _writer;
         boost::atomic<bool> _done;
         boost::thread* _encoderThread;
-        boost::lockfree::spsc_queue<cv::Mat, boost::lockfree::capacity<queueCapacity> > _queue;
+        boost::lockfree::spsc_queue<cv::Mat, boost::lockfree::capacity<QUEUE_CAPACITY>> _queue;
 
         void ffmpegWorker(void)
         {
@@ -71,7 +67,7 @@ class VideoEncoder
                 auto cloneStart = time_ms();
                 if(!_displaying)
                 {
-                    cv::resize(img, displayImg, cv::Size(), displayScale, displayScale);
+                    cv::resize(img, displayImg, cv::Size(), DISPLAY_SCALE, DISPLAY_SCALE);
                     
                     // TODO: Remove from heap?
                     boost::thread* displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
