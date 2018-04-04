@@ -98,16 +98,19 @@ int main(int argc, char* argv[])
     */
     signal(SIGINT, sigintHandler);
 
+
     // Global options
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
     // TODO: debug option
     po::options_description globalArgs("Global options");
+    bool debug = false; // flag
     globalArgs.add_options()
         ("command", po::value<std::string>(), "record <seconds> <filename> | monitor | speed-test")
         ("subargs", po::value<std::vector<std::string> >(), "Sub args if required")
         ("framerate", po::value<float>()->default_value(29), "max 29fps")
         ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
         ("height", po::value<int>()->default_value(1024), "height should be an integer fraction of the max (2048)")
+        ("debug", po::bool_switch(&debug), "verbose logging for debugging purposes")
     ;
 
     // Mode + subargs
@@ -128,7 +131,7 @@ int main(int argc, char* argv[])
     po::notify(vm); 
 
 
-    // Get chosen commands
+    // Determine chosen command
     // TODO: surely a better way, 
     // but notify doesn't seem to be throwing an exception when command is not defined
     string command;
@@ -142,20 +145,20 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    // Retrieve other camera params
+    // Retrieve camera params
     int framerate = vm["framerate"].as<float>();
     int width = vm["width"].as<int>();
     int height = vm["height"].as<int>();
 
-    // Create Camera
-    DALSA_CAMERA = new DalsaCamera();
+    // Open Camera
+    DALSA_CAMERA = new DalsaCamera(debug);
     if(DALSA_CAMERA->open(width, height, framerate))
     {
         cerr << "Failed to open camera";
         return 0;
     }
 
-    // Choose command
+    // Run command
     if(command == "speed-test")
     {
         speedTest(DALSA_CAMERA);
