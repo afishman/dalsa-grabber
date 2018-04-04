@@ -21,7 +21,7 @@ using namespace std::chrono;
 
 #include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
 
-// As a proportion of the image size (TODO: option?)
+// TODO: offload these to run/compiler-time settings file? 
 #define QUEUE_CAPACITY 64
 #define DISPLAY_SCALE 0.25
 #define FFMPEG_OPTIONS "-y -crf 17 -codec:v libx264 -preset ultrafast"
