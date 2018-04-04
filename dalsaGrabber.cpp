@@ -16,6 +16,7 @@ namespace po = boost::program_options;
 
 //TODO: program option?
 #define MONITOR_SCALE 0.25
+#define WINDOW_NAME "Dalsa Monitor"
 
 DalsaCamera *DALSA_CAMERA = NULL;
 void sigintHandler(int s)
@@ -25,6 +26,7 @@ void sigintHandler(int s)
         DALSA_CAMERA->close();
     }
 
+    cvDestroyWindow(WINDOW_NAME);
     exit(1); 
 }
 
@@ -51,8 +53,7 @@ void speedTest(DalsaCamera *camera)
 void monitor(DalsaCamera *camera)
 {
     // Setup OpenCV display window
-    char windowName[] = "Dalsa Monitor";
-    namedWindow(windowName, WINDOW_AUTOSIZE );
+    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
     
     // Display frames 4 evs
     cv::Mat img;
@@ -67,7 +68,7 @@ void monitor(DalsaCamera *camera)
         cv::resize(img, displayImg, cv::Size(), MONITOR_SCALE, MONITOR_SCALE);
 
 
-        imshow(windowName, displayImg);
+        imshow(WINDOW_NAME, displayImg);
         img.release();
         displayImg.release();
 
@@ -80,7 +81,7 @@ void monitor(DalsaCamera *camera)
     }
 
     camera->close();
-    cvDestroyWindow(windowName);
+    cvDestroyWindow(WINDOW_NAME);
 }
 
 
