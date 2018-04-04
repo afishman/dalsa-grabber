@@ -72,6 +72,8 @@ class VideoEncoder
                 if(!_displaying)
                 {
                     cv::resize(img, displayImg, cv::Size(), displayScale, displayScale);
+                    
+                    // TODO: Remove from heap?
                     boost::thread* displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
                 }
 
@@ -133,7 +135,6 @@ class VideoEncoder
             _done = true;
             _encoderThread->join();
         }
-
 };
 
 VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate)
