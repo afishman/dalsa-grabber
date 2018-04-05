@@ -25,8 +25,8 @@ class DalsaCamera
 
 		GEV_BUFFER_OBJECT* nextAcquiredImage();
 
-		std::map<uint, GEV_BUFFER_OBJECT*> _reorderingMap;
-		uint _tNextFrameMicroseconds;
+		std::map<uint64_t, GEV_BUFFER_OBJECT*> _reorderingMap;
+		uint64_t _tNextFrameMicroseconds;
 
 		void logImg(GEV_BUFFER_OBJECT*);
 		void logCamera();
@@ -44,4 +44,6 @@ class DalsaCamera
 		int periodMicroseconds();
 		int record(float duration, char filename[]);
 		bool debug;
+
+		static uint64_t combineTimestamps(uint32_t low, uint32_t high);
 };

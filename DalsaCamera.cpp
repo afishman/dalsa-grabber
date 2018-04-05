@@ -211,7 +211,8 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 
 	// Obtain the first image so _tNextFrameMicroseconds can be set
 	GEV_BUFFER_OBJECT* img_obj = nextAcquiredImage();
-	_tNextFrameMicroseconds = img_obj->timestamp_lo + periodMicroseconds();
+	_tNextFrameMicroseconds = periodMicroseconds() + 
+		combineTimestamps(img_obj->timestamp_lo, img_obj->timestamp_hi);
 
 	_isOpened = 1;
 
@@ -268,7 +269,7 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 		cerr << "Failed to wait for next acquired image.\n";
 		cerr << "img->status = " << imgGev->status << "\n";
 		cerr << "Could be a bandwidth problem\n";
-		throw "next_acquired_image failure";
+		// throw "next_acquired_image failure";
 	}
 	// Check image data is actually there
 	if(imgGev -> address == NULL)
@@ -298,7 +299,8 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 	while(_reorderingMap.find(_tNextFrameMicroseconds) == _reorderingMap.end())
 	{
 		GEV_BUFFER_OBJECT *nextImage = nextAcquiredImage();
-		_reorderingMap[nextImage->timestamp_lo] = nextImage;
+		uint64_t t = combineTimestamps(nextImage->timestamp_lo, nextImage->timestamp_hi);
+		_reorderingMap[t] = nextImage;
 	}
 
 	// Get the next frame
@@ -422,6 +424,11 @@ int DalsaCamera::close()
 
 	_isOpened = 0;
 	return status;
+}
+
+uint64_t DalsaCamera::combineTimestamps(uint32_t low, uint32_t high)
+{
+    return ((uint64_t)high << 32) + low;
 }
 
 #endif /* __DALSACAMERA_CPP__ */

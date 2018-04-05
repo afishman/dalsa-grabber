@@ -94,7 +94,6 @@ void record(DalsaCamera *camera, float duration, char filename[])
     camera->close();
 }
 
-
 int main(int argc, char* argv[])
 {
     /*
