@@ -38,6 +38,7 @@ class VideoEncoder
         VideoIO _writer;
         boost::atomic<bool> _done;
         boost::thread* _encoderThread;
+        boost::thread* _displayThread;
         boost::lockfree::spsc_queue<cv::Mat, boost::lockfree::capacity<QUEUE_CAPACITY>> _queue;
 
         // This mutex is used for three purposes:
@@ -45,7 +46,8 @@ class VideoEncoder
             // 2) to synchronize accesses to std::cerr
             // 3) for the condition variable cv
         std::condition_variable cv;
-        std::mutex cv_m; 
+        std::mutex cv_m;
+        std::mutex display_m;
 
         void ffmpegWorker(void)
         {
@@ -55,6 +57,7 @@ class VideoEncoder
                 writeQueue();
 
                 // Sleep while the queue is empty
+                // TODO: Move this above?
                 std::unique_lock<std::mutex> lk(cv_m);
                 cv.wait(lk);
             }
@@ -69,16 +72,6 @@ class VideoEncoder
                 // Pass to ffmpeg
                 // TODO: handle status
                 int status = _writer.WriteFrame(img);
-
-                // Pass to display
-                if(!_displaying)
-                {
-                    cv::resize(img, displayImg, cv::Size(), DISPLAY_SCALE, DISPLAY_SCALE);
-                    
-                    // TODO: Remove from heap at some point?
-                    boost::thread* displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
-                }
-
                 logFrame();
                 img.release();
             }
@@ -99,25 +92,24 @@ class VideoEncoder
 
         // TODO: Quit on 'q'
         cv::Mat displayImg;
-        // TODO: Use a lock
-        bool _displaying = false;
         void displayFrame(void)
         {
-            _displaying = true;
-
-            if(!displayImg.empty())
+            while(!_done)
             {
-                imshow(WINDOW_NAME, displayImg);
-            }
+                // Wait for next image
+                std::unique_lock<std::mutex> lk(cv_m);
+                cv.wait(lk);
 
-            int key = waitKey(1);
-            if((char) key == 'q') 
-            {
-                cout << "Quitting display...\n";
-            }
+                // Lock the frame
+                std::lock_guard<std::mutex> lock(display_m);
 
-            displayImg.release();
-            _displaying = false;
+                // Display
+                if(!displayImg.empty()) imshow(WINDOW_NAME, displayImg);
+                int key = waitKey(1);
+
+                // Release Image
+                displayImg.release();
+            }
         }
 
     public:
@@ -129,7 +121,18 @@ class VideoEncoder
             // TODO: A while loop missing here?
             _queue.push(img);
 
+            // Pass to display
+            if(display_m.try_lock()) 
+            {
+                try {cv::resize(img, displayImg, cv::Size(), DISPLAY_SCALE, DISPLAY_SCALE);}
+                catch(...){}
+
+                display_m.unlock();
+            }
+
+            // Wake up the threads
             cv.notify_all();
+
             return 0;
         }
 
@@ -138,6 +141,11 @@ class VideoEncoder
         {
             _done = true;
             _encoderThread->join();
+            _displayThread->join();
+
+            // TODO: delete threads?
+
+            return 0;
         }
 };
 
@@ -156,6 +164,8 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
 
     // TODO: Delete after join?
     _encoderThread = new boost::thread(boost::bind(&VideoEncoder::ffmpegWorker, this));
+    _displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
+
 
     // Monitor Window
     // TODO: An option to disable this
