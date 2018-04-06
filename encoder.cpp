@@ -54,12 +54,11 @@ class VideoEncoder
             // TODO: CPU hungry thread?
             while (!_done) 
             {
-                writeQueue();
-
                 // Sleep while the queue is empty
-                // TODO: Move this above?
                 std::unique_lock<std::mutex> lk(cv_m);
                 cv.wait(lk);
+
+                writeQueue();
             }
             writeQueue();
         }
@@ -119,7 +118,7 @@ class VideoEncoder
         int writeFrame(cv::Mat img)
         {
             // TODO: A while loop missing here?
-            _queue.push(img);
+            while (!_queue.push(img));
 
             // Pass to display
             if(display_m.try_lock()) 
