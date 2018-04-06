@@ -13,6 +13,9 @@
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
+#include <mutex>
+#include <condition_variable>
+
 #include <ctime>
 using namespace std;
 #include <chrono>
@@ -37,12 +40,23 @@ class VideoEncoder
         boost::thread* _encoderThread;
         boost::lockfree::spsc_queue<cv::Mat, boost::lockfree::capacity<QUEUE_CAPACITY>> _queue;
 
+        // This mutex is used for three purposes:
+            // 1) to synchronize accesses to i
+            // 2) to synchronize accesses to std::cerr
+            // 3) for the condition variable cv
+        std::condition_variable cv;
+        std::mutex cv_m; 
+
         void ffmpegWorker(void)
         {
             // TODO: CPU hungry thread?
             while (!_done) 
             {
                 writeQueue();
+
+                // Sleep while the queue is empty
+                std::unique_lock<std::mutex> lk(cv_m);
+                cv.wait(lk);
             }
             writeQueue();
         }
@@ -114,6 +128,9 @@ class VideoEncoder
         {
             // TODO: A while loop missing here?
             _queue.push(img);
+
+            cv.notify_all();
+            return 0;
         }
 
         // Hangs until all frames have been passed to ffmpeg

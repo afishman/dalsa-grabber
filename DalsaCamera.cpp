@@ -374,7 +374,7 @@ int DalsaCamera::record(float duration, char filename[])
 		getNextImage(&img);
 
 		// Write the current frame to the mp4 file
-		if (!writer.writeFrame(img))
+		if (writer.writeFrame(img))
 		{
 			fprintf( stderr, "Could not write frame\n" );
 			return -2;
