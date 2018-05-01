@@ -66,7 +66,7 @@ int DalsaCamera::isOpened()
 	return _isOpened;
 }
 
-int DalsaCamera::open(int width, int height, float framerate, float exposureTime=10000)
+int DalsaCamera::open(int width, int height, float framerate, float exposureTime)
 {
 	// Set default options for the library.
 	GEVLIB_CONFIG_OPTIONS options = {0};

@@ -114,6 +114,7 @@ int main(int argc, char* argv[])
         ("framerate", po::value<float>()->default_value(29), "max 29fps")
         ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
         ("height", po::value<int>()->default_value(1024), "height should be an integer fraction of the max (2048)")
+        ("exposure", po::value<float>()->default_value(10000), "exposure in microseconds, must be less than the framerate")
         ("debug", po::bool_switch(&debug), "verbose logging for debugging purposes")
     ;
 
@@ -153,10 +154,11 @@ int main(int argc, char* argv[])
     int framerate = vm["framerate"].as<float>();
     int width = vm["width"].as<int>();
     int height = vm["height"].as<int>();
+    float exposure = vm["exposure"].as<float>();
 
     // Open Camera
     DALSA_CAMERA = new DalsaCamera(debug);
-    if(DALSA_CAMERA->open(width, height, framerate))
+    if(DALSA_CAMERA->open(width, height, framerate, exposure))
     {
         cerr << "Failed to open camera";
         return 0;
