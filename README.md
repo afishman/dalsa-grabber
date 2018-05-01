@@ -1,2 +1,3 @@
 # dalsa-grabber
-A wrapper around the Dalsa GigE-V framework to make recording and display easy
+An simple recording app using the Dalsa GigE-V framework for Linux to make recording and display easy
+
