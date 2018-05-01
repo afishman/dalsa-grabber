@@ -13,10 +13,10 @@ else
 $(error	archdefs.mk file not found. It gets configured on installation ***)
 endif
 
-VIDEO_WRITER_PATH = ../ReadWriteMoviesWithOpenCV/
+VIDEO_WRITER_PATH = ./videoIO
 
 INC_PATH = -I. -I$(IROOT)/include $(INC_GENICAM) -I$(VIDEO_WRITER_PATH)/..
-DEPS = $(VIDEO_WRITER_PATH)/DataManagement/VideoIO.h
+DEPS = $(VIDEO_WRITER_PATH)/VideoIO.h
 
                           
 DEBUGFLAGS = -g 
@@ -35,11 +35,11 @@ OPENCV = `pkg-config opencv --cflags --libs`
 
 # objects to compile
 
-OBJS += ../ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.o \
-        ../ReadWriteMoviesWithOpenCV/DataManagement/Pipe.o \
+OBJS += ./videoIO/VideoIO.o \
+        ./videoIO/Pipe.o \
         dalsaGrabber.o
 
-all: dalsa_grabber
+all: dalsaGrabber
 
 #dalsaGrabber.o: dalsaGrabber.o
 #	echo fooooo
@@ -51,7 +51,7 @@ all: dalsa_grabber
 	$(CC) -I. $(INC_PATH) $(CXX_COMPILE_OPTIONS) $(ARCH_OPTIONS) -c $< -o $@ -std=c++11
 
 
-dalsa_grabber : $(OBJS) 
+dalsaGrabber : $(OBJS) 
 	$(CC) -g $(ARCH_LINK_OPTIONS) -std=c++11 -o dalsaGrabber $(OBJS) $(OPENCV) $(LCLLIBS) $(GENICAM_LIBS) -L$(ARCHLIBDIR) -lstdc++ -lm -lboost_system -lboost_program_options -lboost_thread
 
 clean:

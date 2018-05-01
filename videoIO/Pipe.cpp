@@ -5,6 +5,10 @@
 * @copyright All right reserved.
 */
 
+/* 
+	This code is reproduced from https://github.com/Vaufreyd/ReadWriteVideosWithOpenCV in accordance with its GNU public license. Thanks!
+*/
+
 #include "Pipe.h"
 
 /** @brief Constructor, empty but defined. Values are set in c++11 way.

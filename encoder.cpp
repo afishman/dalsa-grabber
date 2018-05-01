@@ -22,7 +22,7 @@ using namespace std;
 using namespace std::chrono;
  
 
-#include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
+#include "videoIO/VideoIO.h"
 
 // TODO: offload these to run/compiler-time settings file? 
 #define QUEUE_CAPACITY 64

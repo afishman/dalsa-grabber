@@ -5,6 +5,10 @@
  * @copyright All right reserved.
  */
 
+/* 
+	This code is reproduced from https://github.com/Vaufreyd/ReadWriteVideosWithOpenCV in accordance with its GNU public license. Thanks!
+*/
+
 #include "VideoIO.h"
 
 #if defined WIN32 || defined WIN64

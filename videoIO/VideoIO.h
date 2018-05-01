@@ -5,6 +5,10 @@
  * @copyright All right reserved.
  */
 
+/* 
+	This code is reproduced from https://github.com/Vaufreyd/ReadWriteVideosWithOpenCV in accordance with its GNU public license. Thanks!
+*/
+
 #ifndef __VIDEO_IO_H__
 #define __VIDEO_IO_H__
 

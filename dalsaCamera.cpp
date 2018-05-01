@@ -24,7 +24,7 @@ using namespace cv;
 #include <time.h>
 
 #include "dalsaCamera.h"
-#include "ReadWriteMoviesWithOpenCV/DataManagement/VideoIO.h"
+#include "videoIO/VideoIO.h"
 #include "encoder.cpp"
 
 #define NUM_BUF 64
