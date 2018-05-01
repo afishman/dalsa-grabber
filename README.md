@@ -21,8 +21,8 @@ Defaults were tested to be appropriate for the Teledyne Dalsa XX camera.
 
 dalsaGrabber is the main console app produced from the makefile that let's you  write videos and monitor. Run `dalsaGrabber --help` for options (such as sepcifying framerate / resolution etc...)
 
-Note: It is *highly* reccomended the GigE-V network config script to improve network performance:
-* `sudo /path_to_GigE-V_framework/DALSA/DALSA/GigeV/bin/gev_nettweak ehternet_device_name`
+Note: It is *strongly* reccomended the GigE-V network config script to improve network performance:
+* `sudo /path_to_GigE-V_framework/DALSA/GigeV/bin/gev_nettweak ehternet_device_name`
 
 (Hint: Available network devices can be listed with `ifconfig`)
 
