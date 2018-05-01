@@ -9,7 +9,7 @@ using namespace std;
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
-#include "DalsaCamera.cpp"
+#include "dalsaCamera.cpp"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
