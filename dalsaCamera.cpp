@@ -352,13 +352,13 @@ void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 }
 
 // Duration is in seconds
-int DalsaCamera::record(float duration, char filename[])
+int DalsaCamera::record(float duration, int crf, char filename[])
 {
 	// TODO: Make this configuration more accessible
 	int numFrames = round(duration * float(_framerate));
 
 	// Initialise video writer
-	VideoEncoder writer(filename, (int)(width()), (int)(height()), _framerate, debug);
+	VideoEncoder writer(filename, (int)(width()), (int)(height()), _framerate, crf, debug);
 
     // Collect the frames
 	for(int i=0; i<numFrames; i++)

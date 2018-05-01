@@ -88,9 +88,9 @@ void monitor(DalsaCamera *camera)
 }
 
 // Record some video
-void record(DalsaCamera *camera, float duration, char filename[])
+void record(DalsaCamera *camera, float duration, int crf, char filename[])
 {
-    camera->record(duration, filename);       
+    camera->record(duration, crf, filename);       
     camera->close();
 }
 
@@ -115,6 +115,7 @@ int main(int argc, char* argv[])
         ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
         ("height", po::value<int>()->default_value(1024), "height should be an integer fraction of the max (2048)")
         ("exposure", po::value<float>()->default_value(10000), "exposure in microseconds, must be less than the framerate")
+        ("crf", po::value<int>()->default_value(27), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
         ("debug", po::bool_switch(&debug), "verbose logging for debugging purposes")
     ;
 
@@ -155,6 +156,7 @@ int main(int argc, char* argv[])
     int width = vm["width"].as<int>();
     int height = vm["height"].as<int>();
     float exposure = vm["exposure"].as<float>();
+    int crf = vm["crf"].as<int>();
 
     // Open Camera
     DALSA_CAMERA = new DalsaCamera(debug);
@@ -216,7 +218,7 @@ int main(int argc, char* argv[])
             char filename[filenameStr.length()+1];
             strcpy(filename, filenameStr.c_str());
 
-            record(DALSA_CAMERA, duration, filename);
+            record(DALSA_CAMERA, duration, crf, filename);
         }
         else
         {

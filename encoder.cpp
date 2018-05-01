@@ -27,7 +27,7 @@ using namespace std::chrono;
 // TODO: offload these to run/compiler-time settings file? 
 #define QUEUE_CAPACITY 64
 #define DISPLAY_SCALE 0.25
-#define FFMPEG_OPTIONS "-y -crf 17 -codec:v libx264 -preset ultrafast"
+#define FFMPEG_OPTIONS "-y -codec:v libx264 -preset ultrafast"
 #define WINDOW_NAME "Dalsa Monitor"
 
 class VideoEncoder 
@@ -112,7 +112,7 @@ class VideoEncoder
         }
 
     public:
-        VideoEncoder(char*, int, int, int, bool);
+        VideoEncoder(char*, int, int, int, int, bool);
 
         //TODO feedback if something has failed
         int writeFrame(cv::Mat img)
@@ -148,7 +148,7 @@ class VideoEncoder
         }
 };
 
-VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate, bool debug=false)
+VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate, int crf, bool debug=false)
 {
     writeCount = 0;
     _debug = debug;
@@ -156,7 +156,7 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
     // TODO: an option for this
     char ffmpegOptions[] = FFMPEG_OPTIONS;
     _writer.DebugMode = true;
-    _writer.Create(filename, width, height, framerate, ffmpegOptions);
+    _writer.Create(filename, width, height, framerate, (std::string(ffmpegOptions)+" -crf "+std::to_string(crf)).c_str());
 
     // Start thread
     _done = false;

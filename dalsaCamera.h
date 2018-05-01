@@ -42,7 +42,7 @@ class DalsaCamera
 		int getNextImage(cv::Mat *img);
 		int close();
 		int periodMicroseconds();
-		int record(float duration, char filename[]);
+		int record(float duration, int crf, char filename[]);
 		bool debug;
 
 		static uint64_t combineTimestamps(uint32_t low, uint32_t high);
