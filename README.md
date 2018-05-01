@@ -6,7 +6,7 @@ Defaults were tested to be appropriate for the Teledyne Dalsa XX camera.
 
 1. Install Dependencies
 
-* Gig-EV framework for linux (tested on v2.01.0.0120)
+* GigE-V framework for linux (tested on v2.01.0.0120)
 * ffmpeg (tested on v3.1.3)
 * Opencv (tested on v2.4.9.1)
 * Boost libraries (tested on v1.58)
