@@ -55,11 +55,24 @@ void speedTest(DalsaCamera *camera)
 // Monitor without record
 void monitor(DalsaCamera *camera)
 {
-    // Setup OpenCV display window
-    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
-    
-    // Display frames 4 evs
     cv::Mat img;
+
+    // Setup OpenCV display window
+    namedWindow(WINDOW_NAME, WINDOW_NORMAL);
+ 
+    // Get First Image
+    if(camera->getNextImage(&img))
+    {
+        camera->close();
+        cvDestroyWindow(WINDOW_NAME);
+        return;
+    }
+    cv::Mat displayImg;
+    cv::resize(img, displayImg, cv::Size(), MONITOR_SCALE, MONITOR_SCALE);
+
+    cv::resizeWindow(WINDOW_NAME, displayImg.cols, displayImg.rows);
+
+    // Display frames 4 evs
     for(;;)
     {
         if(camera->getNextImage(&img))
@@ -69,7 +82,6 @@ void monitor(DalsaCamera *camera)
 
         cv::Mat displayImg;
         cv::resize(img, displayImg, cv::Size(), MONITOR_SCALE, MONITOR_SCALE);
-
 
         imshow(WINDOW_NAME, displayImg);
         img.release();
