@@ -43,6 +43,7 @@ class DalsaCamera
 		int close();
 		int periodMicroseconds();
 		int record(float duration, int crf, char filename[]);
+		int snapshot(char filename[]);
 		bool debug;
 
 		static uint64_t combineTimestamps(uint32_t low, uint32_t high);

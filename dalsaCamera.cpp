@@ -384,6 +384,14 @@ int DalsaCamera::record(float duration, int crf, char filename[])
 	writer.close();
 }
 
+int DalsaCamera::snapshot(char filename[])
+{
+	cv::Mat img;
+	getNextImage(&img);
+
+	cv::imwrite(filename, img);
+}
+
 // In Microseconds
 int DalsaCamera::periodMicroseconds()
 {

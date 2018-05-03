@@ -94,6 +94,13 @@ void record(DalsaCamera *camera, float duration, int crf, char filename[])
     camera->close();
 }
 
+void snapshot(DalsaCamera *camera, char filename[])
+{
+    cout << "taking a snapshot to " << filename << endl;
+    camera->snapshot(filename);
+    camera->close();
+}
+
 int main(int argc, char* argv[])
 {
     /*
@@ -109,7 +116,7 @@ int main(int argc, char* argv[])
     po::options_description globalArgs("Global options");
     bool debug = false; // flag
     globalArgs.add_options()
-        ("command", po::value<std::string>(), "record <seconds> <filename> | monitor | speed-test")
+        ("command", po::value<std::string>(), "monitor | snapshot <filename> | record <seconds> <filename> | speed-test")
         ("subargs", po::value<std::vector<std::string> >(), "Sub args if required")
         ("framerate", po::value<float>()->default_value(29), "max 29fps")
         ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
@@ -162,7 +169,7 @@ int main(int argc, char* argv[])
     DALSA_CAMERA = new DalsaCamera(debug);
     if(DALSA_CAMERA->open(width, height, framerate, exposure))
     {
-        cerr << "Failed to open camera";
+        cerr << "Failed to open camera\n";
         return 0;
     }
 
@@ -219,6 +226,41 @@ int main(int argc, char* argv[])
             strcpy(filename, filenameStr.c_str());
 
             record(DALSA_CAMERA, duration, crf, filename);
+        }
+        else if(command == "snapshot")
+        {
+            // Record Options
+            po::options_description snap_desc("snapshot options");
+            snap_desc.add_options()("filename", po::value<std::string>(), "filename (currently only .mp4)");
+
+            // Collect all the unrecognized options from the first pass. This will include the
+            // (positional) command name, so we need to erase that.
+            std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+            opts.erase(opts.begin());
+
+            // Record positional args
+            po::positional_options_description snap_pos_args;
+            snap_pos_args.add("filename", 1);
+
+            // Parse again...
+            po::store(po::command_line_parser(opts).options(snap_desc).positional(snap_pos_args).run(), vm);
+
+            std::string filenameStr;
+            try
+            {
+                filenameStr = vm["filename"].as<std::string>();
+            }
+            catch(...) //TODO: Lazy exception handling, check for type
+            {
+                cerr << "ERROR: you need provide filename with snapshot option";
+                printHelp(globalArgs);
+            }
+
+            // Convert to char array
+            char filename[filenameStr.length()+1];
+            strcpy(filename, filenameStr.c_str());
+
+            snapshot(DALSA_CAMERA, filename);            
         }
         else
         {
