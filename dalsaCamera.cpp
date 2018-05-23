@@ -152,6 +152,19 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
+	int zero= 0;
+	if(GevSetFeatureValue(handle, "OffsetY", sizeof(zero), &zero))
+	{
+		cerr << "Failed to initialise height offset to " << zero << endl;
+		return 1;
+	}
+
+	if(GevSetFeatureValue(handle, "OffsetX", sizeof(zero), &zero))
+	{
+		cerr << "Failed to initialise width offset to " << zero << endl;
+		return 1;
+	}
+	
 	// Whacking down the resolution Setting Feature Values
 	if(GevSetFeatureValue(handle, "Width", sizeof(width), &width))
 	{
@@ -163,13 +176,26 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	{
 		cerr << "Failed to set height to " << height << endl;
 		return 1;
-	}
+	}	
+
+	// Get camera settings
+	// TODO: Assert the retrieved value matches the one passed in
+	int type;	
+	float readExposed = -1;
+
+	GevGetFeatureValue(handle, "Width", &type, sizeof(width), &width);
+	GevGetFeatureValue(handle, "Height", &type, sizeof(height), &height);
+	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
+	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
 
 	// Setting height and width offsets to centralise image
-	int heightOffset, widthOffset;
+	int heightOffset, widthOffset, heightMax, widthMax;
 
-	heightOffset= (2048-height)/2;
-	widthOffset= (2560-width)/2;
+	GevGetFeatureValue(handle, "WidthMax", &type, sizeof(widthMax), &widthMax);
+	GevGetFeatureValue(handle, "HeightMax", &type, sizeof(heightMax), &heightMax);
+
+	heightOffset= floor((heightMax-height)/2);
+	widthOffset= floor((widthMax-width)/2);
 
 	if(GevSetFeatureValue(handle, "OffsetY", sizeof(heightOffset), &heightOffset))
 	{
@@ -183,15 +209,6 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
-	// Get camera settings
-	// TODO: Assert the retrieved value matches the one passed in
-	int type;	
-	float readExposed = -1;
-
-	GevGetFeatureValue(handle, "Width", &type, sizeof(width), &width);
-	GevGetFeatureValue(handle, "Height", &type, sizeof(height), &height);
-	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
-	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
 
 	_width = width;
 	_height = height;
@@ -314,10 +331,12 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 	
 	// Add frames to the map until the next one is acquired
 	// TODO: Handle overflow
+
 	while(_reorderingMap.find(_tNextFrameMicroseconds) == _reorderingMap.end())
 	{
 		GEV_BUFFER_OBJECT *nextImage = nextAcquiredImage();
 		uint64_t t = combineTimestamps(nextImage->timestamp_lo, nextImage->timestamp_hi);
+
 		_reorderingMap[t] = nextImage;
 	}
 
