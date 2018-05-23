@@ -8,8 +8,8 @@ Defaults were tested to be appropriate for the Teledyne Dalsa XX camera.
 
 * GigE-V framework for linux (tested on v2.01.0.0120)
 * ffmpeg (tested on v3.1.3)
-* Opencv (tested on v2.4.9.1)
-* Boost libraries (tested on v1.58)
+* Opencv (tested on v2.4.9.1) - on Ubuntu install with `sudo apt-get install libopencv-dev`
+* Boost libraries (tested on v1.58) - on Ubuntu install with `sudo apt-get install libboost-all-dev`
 
 2. Compile
 
