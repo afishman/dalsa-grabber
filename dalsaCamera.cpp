@@ -165,6 +165,24 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
+	// Setting height and width offsets to centralise image
+	int heightOffset, widthOffset;
+
+	heightOffset= (2048-height)/2;
+	widthOffset= (2560-width)/2;
+
+	if(GevSetFeatureValue(handle, "OffsetY", sizeof(heightOffset), &heightOffset))
+	{
+		cerr << "Failed to set height offset to " << heightOffset << endl;
+		return 1;
+	}
+
+	if(GevSetFeatureValue(handle, "OffsetX", sizeof(widthOffset), &widthOffset))
+	{
+		cerr << "Failed to set width offset to " << widthOffset << endl;
+		return 1;
+	}
+
 	// Get camera settings
 	// TODO: Assert the retrieved value matches the one passed in
 	int type;	
