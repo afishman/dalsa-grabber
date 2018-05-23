@@ -152,19 +152,6 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
-	int zero= 0;
-	if(GevSetFeatureValue(handle, "OffsetY", sizeof(zero), &zero))
-	{
-		cerr << "Failed to initialise height offset to " << zero << endl;
-		return 1;
-	}
-
-	if(GevSetFeatureValue(handle, "OffsetX", sizeof(zero), &zero))
-	{
-		cerr << "Failed to initialise width offset to " << zero << endl;
-		return 1;
-	}
-	
 	// Whacking down the resolution Setting Feature Values
 	if(GevSetFeatureValue(handle, "Width", sizeof(width), &width))
 	{
@@ -176,7 +163,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	{
 		cerr << "Failed to set height to " << height << endl;
 		return 1;
-	}	
+	}
 
 	// Get camera settings
 	// TODO: Assert the retrieved value matches the one passed in
@@ -187,28 +174,6 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	GevGetFeatureValue(handle, "Height", &type, sizeof(height), &height);
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
 	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
-
-	// Setting height and width offsets to centralise image
-	int heightOffset, widthOffset, heightMax, widthMax;
-
-	GevGetFeatureValue(handle, "WidthMax", &type, sizeof(widthMax), &widthMax);
-	GevGetFeatureValue(handle, "HeightMax", &type, sizeof(heightMax), &heightMax);
-
-	heightOffset= floor((heightMax-height)/2);
-	widthOffset= floor((widthMax-width)/2);
-
-	if(GevSetFeatureValue(handle, "OffsetY", sizeof(heightOffset), &heightOffset))
-	{
-		cerr << "Failed to set height offset to " << heightOffset << endl;
-		return 1;
-	}
-
-	if(GevSetFeatureValue(handle, "OffsetX", sizeof(widthOffset), &widthOffset))
-	{
-		cerr << "Failed to set width offset to " << widthOffset << endl;
-		return 1;
-	}
-
 
 	_width = width;
 	_height = height;
@@ -328,25 +293,35 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 		cerr << "open camera before calling get_next_image";
 		return 1;
 	}
-	
-	// Add frames to the map until the next one is acquired
-	// TODO: Handle overflow
 
-	while(_reorderingMap.find(_tNextFrameMicroseconds) == _reorderingMap.end())
+	// Cache frames to the map until the next one is acquired
+	uint64_t next_timestamp = 0;
+	while(!next_timestamp)
 	{
+		// Acquire next image and cache into map
 		GEV_BUFFER_OBJECT *nextImage = nextAcquiredImage();
-		uint64_t t = combineTimestamps(nextImage->timestamp_lo, nextImage->timestamp_hi);
+		uint64_t acquired_t = combineTimestamps(nextImage->timestamp_lo, nextImage->timestamp_hi);
+		_reorderingMap[acquired_t] = nextImage;
 
-		_reorderingMap[t] = nextImage;
+		// Check for __tNextFrameMicroseconds within a microsecond tolerance to account for rounding error
+		for(uint64_t t=_tNextFrameMicroseconds-1; t<=_tNextFrameMicroseconds+1; t++)
+		{
+			if(_reorderingMap.find(t) != _reorderingMap.end())
+			{
+				next_timestamp = t;
+				break;
+			}
+		}
 	}
+	
+  	// Get the next frame
+   	GEV_BUFFER_OBJECT *imgGev = _reorderingMap[next_timestamp];
+   	_reorderingMap.erase(next_timestamp);
 
-	// Get the next frame
-	GEV_BUFFER_OBJECT *imgGev = _reorderingMap[_tNextFrameMicroseconds];
-	_reorderingMap.erase(_tNextFrameMicroseconds);
 	logImg(imgGev);
 
 	//TODO: handle a reset of next frame
-	_tNextFrameMicroseconds += periodMicroseconds();
+	_tNextFrameMicroseconds = next_timestamp + periodMicroseconds();
 
 	// Debayer the image
     cv::Mat imgCv = cv::Mat(height(), width(), CV_8UC1, imgGev->address);

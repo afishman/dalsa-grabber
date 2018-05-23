@@ -85,7 +85,7 @@ void monitor(DalsaCamera *camera)
 
         imshow(WINDOW_NAME, displayImg);
         img.release();
-        displayImg.release();
+        displayImg.release(); 
 
         int key = waitKey(1);
         if( (char) key == 'q') 
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
         ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
         ("height", po::value<int>()->default_value(1024), "height should be an integer fraction of the max (2048)")
         ("exposure", po::value<float>()->default_value(10000), "exposure in microseconds, must be less than the framerate")
-        ("crf", po::value<int>()->default_value(1), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
+        ("crf", po::value<int>()->default_value(15), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
         ("debug", po::bool_switch(&debug), "verbose logging for debugging purposes")
     ;
 
