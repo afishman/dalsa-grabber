@@ -152,6 +152,19 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
+	int zero= 0;
+	if(GevSetFeatureValue(handle, "OffsetY", sizeof(zero), &zero))
+	{
+		cerr << "Failed to initialise height offset to " << zero << endl;
+		return 1;
+	}
+
+	if(GevSetFeatureValue(handle, "OffsetX", sizeof(zero), &zero))
+	{
+		cerr << "Failed to initialise width offset to " << zero << endl;
+		return 1;
+	}
+
 	// Whacking down the resolution Setting Feature Values
 	if(GevSetFeatureValue(handle, "Width", sizeof(width), &width))
 	{
@@ -174,6 +187,27 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	GevGetFeatureValue(handle, "Height", &type, sizeof(height), &height);
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
 	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
+
+	// Setting height and width offsets to centralise image
+	int heightOffset, widthOffset, heightMax, widthMax;
+	 
+	GevGetFeatureValue(handle, "WidthMax", &type, sizeof(widthMax), &widthMax);
+	GevGetFeatureValue(handle, "HeightMax", &type, sizeof(heightMax), &heightMax);
+
+	heightOffset= floor((heightMax-height)/2);
+	widthOffset= floor((widthMax-width)/2);
+
+	if(GevSetFeatureValue(handle, "OffsetY", sizeof(heightOffset), &heightOffset))
+	{
+		cerr << "Failed to initialise height offset to " << heightOffset << endl;
+		return 1;
+	}
+
+	if(GevSetFeatureValue(handle, "OffsetX", sizeof(widthOffset), &widthOffset))
+	{
+		cerr << "Failed to initialise width offset to " << widthOffset << endl;
+		return 1;
+	}
 
 	_width = width;
 	_height = height;
@@ -304,7 +338,7 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 		_reorderingMap[acquired_t] = nextImage;
 
 		// Check for __tNextFrameMicroseconds within a microsecond tolerance to account for rounding error
-		for(uint64_t t=_tNextFrameMicroseconds-1; t<=_tNextFrameMicroseconds+1; t++)
+		for(uint64_t t=_tNextFrameMicroseconds-2; t<=_tNextFrameMicroseconds+2; t++)
 		{
 			if(_reorderingMap.find(t) != _reorderingMap.end())
 			{
