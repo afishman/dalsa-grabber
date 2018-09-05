@@ -124,7 +124,6 @@ int main(int argc, char* argv[])
 
     // Global options
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
-    // TODO: debug option
     po::options_description globalArgs("Global options");
     bool debug = false; // flag
     globalArgs.add_options()

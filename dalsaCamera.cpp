@@ -68,6 +68,21 @@ int DalsaCamera::isOpened()
 
 int DalsaCamera::open(int width, int height, float framerate, float exposureTime)
 {
+	// Check validity of framerate and exposure
+	if(framerate <= 0)
+	{
+		cerr << "Invalid Framerate: " << framerate << endl;
+		return 1;
+	}
+
+	float max_exposure = 1000000/framerate;
+	if(max_exposure <= exposureTime)
+	{
+		cerr << "Exposure longer than framerate (max " << (int)max_exposure << "us" << " for a framerate of " <<  framerate << ")" << endl;
+		return 1;
+	}
+
+
 	// Set default options for the library.
 	GEVLIB_CONFIG_OPTIONS options = {0};
 	GevGetLibraryConfigOptions( &options);
@@ -456,7 +471,7 @@ int DalsaCamera::close()
 	// (2) Gev API
 	// (3) Sockets
 
-	// TODO: Although this works
+	// TODO: Although this works, try/catch could be avoided by checking _isOpened etc....
 	try
 	{
 		GevAbortImageTransfer(handle);
@@ -480,7 +495,7 @@ int DalsaCamera::close()
 	// Close socket API
 	try
 	{
-		_CloseSocketAPI ();	
+		_CloseSocketAPI();	
 	}
 	catch(...){}
 

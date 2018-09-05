@@ -51,7 +51,6 @@ class VideoEncoder
 
         void ffmpegWorker(void)
         {
-            // TODO: CPU hungry thread?
             while (!_done) 
             {
                 // Sleep while the queue is empty
@@ -117,7 +116,6 @@ class VideoEncoder
         //TODO feedback if something has failed
         int writeFrame(cv::Mat img)
         {
-            // TODO: A while loop missing here?
             while (!_queue.push(img));
 
             // Pass to display
