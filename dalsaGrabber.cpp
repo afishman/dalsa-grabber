@@ -182,6 +182,7 @@ int main(int argc, char* argv[])
     if(DALSA_CAMERA->open(width, height, framerate, exposure))
     {
         cerr << "Failed to open camera\n";
+        sigintHandler(0);
         return 0;
     }
 

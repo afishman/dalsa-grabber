@@ -446,10 +446,7 @@ int DalsaCamera::periodMicroseconds()
 
 int DalsaCamera::close() 
 {
-	if(!_isOpened)
-	{
-		return 0;
-	}
+	printf("Closing camera...\n");
 
 	UINT16 status;
 
@@ -459,20 +456,33 @@ int DalsaCamera::close()
 	// (2) Gev API
 	// (3) Sockets
 
-	GevAbortImageTransfer(handle);
-	status = GevFreeImageTransfer(handle);
+	// TODO: Although this works
+	try
+	{
+		GevAbortImageTransfer(handle);
+		status = GevFreeImageTransfer(handle);	
+	}
+	catch(...){}
 
-	printf("Closing camera...\n");
-	GevCloseCamera(&handle);
+	try
+	{
+		GevCloseCamera(&handle);
+	}
+	catch(...){}
 
 	// Close down the API.
-	printf("Uninitialising API...\n");
-	GevApiUninitialize();
+	try
+	{
+		GevApiUninitialize();
+	}
+	catch(...){}
 
 	// Close socket API
-	// must close API even on error	
-	printf("Closing socket API...\n");
-	_CloseSocketAPI ();	
+	try
+	{
+		_CloseSocketAPI ();	
+	}
+	catch(...){}
 
 	//TODO: Deallocate buffers
 
