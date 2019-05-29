@@ -1,6 +1,6 @@
 # dalsa-grabber
 A simple recording app using the Dalsa GigE-V framework for Linux to make recording and display easy.
-Defaults were tested to be appropriate for the Teledyne Dalsa XX camera.
+Defaults were tested to be appropriate for the Teledyne Dalsa Genie TS-C2500 camera.
 
 ## Installation ##
 
