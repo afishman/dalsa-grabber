@@ -1,3 +1,27 @@
+/*
+* MIT License
+* 
+* Copyright (c) 2019 Aaron Fishman
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string> 
@@ -9,35 +33,36 @@ using namespace std;
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
-#include "dalsaCamera.cpp"
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-//TODO: program option?
+#include "dalsaCamera.cpp"
+
+// TODO: include option for scale
 #define MONITOR_SCALE 1
 #define WINDOW_NAME "Dalsa Monitor"
 
-// For Graceful failing
+// Global camera reference for graceful termination
 DalsaCamera *DALSA_CAMERA = NULL;
-void sigintHandler(int s)
+
+/* For graceful failing */
+void onExit()
 {
     if(DALSA_CAMERA != NULL)
     {
         DALSA_CAMERA->close();
     }
 
-    cvDestroyAllWindows();
-    exit(1); 
+    cvDestroyAllWindows();  
 }
 
-// Boost Program Options help
+/* Help message */
 void printHelp(po::options_description desc)
 {
     cout << desc << endl;
 }
 
-// Test the speed of your camera
+/* Test the speed of frame acquisition. Grab and release frames without any rendering. */
 void speedTest(DalsaCamera *camera)
 {
     cv::Mat img;    
@@ -52,7 +77,7 @@ void speedTest(DalsaCamera *camera)
     }
 }
 
-// Monitor without record
+/* Live heads-up display of the dalsa */
 void monitor(DalsaCamera *camera)
 {
     cv::Mat img;
@@ -60,7 +85,7 @@ void monitor(DalsaCamera *camera)
     // Setup OpenCV display window
     namedWindow(WINDOW_NAME, WINDOW_NORMAL);
  
-    // Get First Image
+    // Use first image to setup window
     if(camera->getNextImage(&img))
     {
         camera->close();
@@ -69,17 +94,18 @@ void monitor(DalsaCamera *camera)
     }
     cv::Mat displayImg;
     cv::resize(img, displayImg, cv::Size(), MONITOR_SCALE, MONITOR_SCALE);
-
     cv::resizeWindow(WINDOW_NAME, displayImg.cols, displayImg.rows);
 
-    // Display frames 4 evs
+    // Display loop
     for(;;)
     {
+        // Grab frame
         if(camera->getNextImage(&img))
         {
             break;
         }
 
+        // Display
         cv::Mat displayImg;
         cv::resize(img, displayImg, cv::Size(), MONITOR_SCALE, MONITOR_SCALE);
 
@@ -87,6 +113,7 @@ void monitor(DalsaCamera *camera)
         img.release();
         displayImg.release(); 
 
+        // User input
         int key = waitKey(1);
         if( (char) key == 'q') 
         {
@@ -95,17 +122,19 @@ void monitor(DalsaCamera *camera)
         } 
     }
 
+    // Cleanup
     camera->close();
     cvDestroyWindow(WINDOW_NAME);
 }
 
-// Record some video
+/* Record video */
 void record(DalsaCamera *camera, float duration, int crf, char filename[])
 {
     camera->record(duration, crf, filename);       
     camera->close();
 }
 
+/* Take a snapshot */
 void snapshot(DalsaCamera *camera, char filename[])
 {
     cout << "taking a snapshot to " << filename << endl;
@@ -113,15 +142,9 @@ void snapshot(DalsaCamera *camera, char filename[])
     camera->close();
 }
 
+/* A Simple console app to record and monitor using a Teledyne Dalsa GigE-V camera */
 int main(int argc, char* argv[])
-{
-    /*
-        A Simple console app to record and monitor using a Teledyne Dalsa GigE-V camera
-    */
-
-    // For graceful failing with a crtl+c interrupt 
-    signal(SIGINT, sigintHandler);
-
+{   
     // Global options
     // Thanks: https://stackoverflow.com/questions/15541498/how-to-implement-subcommands-using-boost-program-options
     po::options_description globalArgs("Global options");
@@ -156,8 +179,7 @@ int main(int argc, char* argv[])
 
 
     // Determine chosen command
-    // TODO: surely a better way, 
-    // but notify doesn't seem to be throwing an exception when command is not defined
+    // TODO: surely a better way than exception try-catch, but notify doesn't seem to be throw an exception when it's not defined
     string command;
     try 
     {
@@ -178,113 +200,110 @@ int main(int argc, char* argv[])
 
     // Open Camera
     DALSA_CAMERA = new DalsaCamera(debug);
+    std::atexit(onExit); // For Graceful failing
+    
     if(DALSA_CAMERA->open(width, height, framerate, exposure))
     {
         cerr << "Failed to open camera\n";
-        sigintHandler(0);
         return 0;
     }
 
     // Run command
     // For graceful failing, run the sigint handler on exception
-    try
+
+    if(command == "speed-test")
     {
-        if(command == "speed-test")
+        speedTest(DALSA_CAMERA);
+    }
+    else if(command == "monitor")
+    {
+        monitor(DALSA_CAMERA);
+    }
+    else if(command == "record")
+    {
+        // Record Options
+        po::options_description record_desc("record options");
+        record_desc.add_options()
+            ("duration", po::value<float>(), "Record duration in seconds")
+            ("filename", po::value<std::string>(), "filename (currently only .mp4)")
+        ;
+
+        // Collect all the unrecognized options from the first pass. This will include the
+        // (positional) command name, so we need to erase that.
+        std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+        opts.erase(opts.begin());
+
+        // Record positional args
+        po::positional_options_description record_pos_args;
+        record_pos_args
+        .add("duration", 1)
+        .add("filename", 1);
+
+        // Parse again...
+        po::store(po::command_line_parser(opts).options(record_desc).positional(record_pos_args).run(), vm);
+
+        float duration;
+        std::string filenameStr;
+        try
         {
-            speedTest(DALSA_CAMERA);
+            duration = vm["duration"].as<float>();
+            filenameStr = vm["filename"].as<std::string>();
         }
-        else if(command == "monitor")
+        catch(...) //TODO: Lazy exception handling, check for type
         {
-            monitor(DALSA_CAMERA);
-        }
-        else if(command == "record")
-        {
-            // Record Options
-            po::options_description record_desc("record options");
-            record_desc.add_options()
-                ("duration", po::value<float>(), "Record duration in seconds")
-                ("filename", po::value<std::string>(), "filename (currently only .mp4)")
-            ;
-
-            // Collect all the unrecognized options from the first pass. This will include the
-            // (positional) command name, so we need to erase that.
-            std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-            opts.erase(opts.begin());
-
-            // Record positional args
-            po::positional_options_description record_pos_args;
-            record_pos_args
-            .add("duration", 1)
-            .add("filename", 1);
-
-            // Parse again...
-            po::store(po::command_line_parser(opts).options(record_desc).positional(record_pos_args).run(), vm);
-
-            float duration;
-            std::string filenameStr;
-            try
-            {
-                duration = vm["duration"].as<float>();
-                filenameStr = vm["filename"].as<std::string>();
-            }
-            catch(...) //TODO: Lazy exception handling, check for type
-            {
-                cerr << "ERROR: you need provide duration and filename with record option";
-                printHelp(globalArgs);
-            }
-
-            // Convert to char array
-            char filename[filenameStr.length()+1];
-            strcpy(filename, filenameStr.c_str());
-
-            record(DALSA_CAMERA, duration, crf, filename);
-        }
-        else if(command == "snapshot")
-        {
-            // Record Options
-            po::options_description snap_desc("snapshot options");
-            snap_desc.add_options()("filename", po::value<std::string>(), "filename (currently only .mp4)");
-
-            // Collect all the unrecognized options from the first pass. This will include the
-            // (positional) command name, so we need to erase that.
-            std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-            opts.erase(opts.begin());
-
-            // Record positional args
-            po::positional_options_description snap_pos_args;
-            snap_pos_args.add("filename", 1);
-
-            // Parse again...
-            po::store(po::command_line_parser(opts).options(snap_desc).positional(snap_pos_args).run(), vm);
-
-            std::string filenameStr;
-            try
-            {
-                filenameStr = vm["filename"].as<std::string>();
-            }
-            catch(...) //TODO: Lazy exception handling, check for type
-            {
-                cerr << "ERROR: you need provide filename with snapshot option";
-                printHelp(globalArgs);
-            }
-
-            // Convert to char array
-            char filename[filenameStr.length()+1];
-            strcpy(filename, filenameStr.c_str());
-
-            snapshot(DALSA_CAMERA, filename);            
-        }
-        else
-        {
-            cerr << "COMMAND UNRECOGNISED: " << command << endl;
+            cerr << "ERROR: you need provide duration and filename with record option";
             printHelp(globalArgs);
         }
+
+        // Convert to char array
+        char filename[filenameStr.length()+1];
+        strcpy(filename, filenameStr.c_str());
+
+        record(DALSA_CAMERA, duration, crf, filename);
     }
-    catch(...)
+    else if(command == "snapshot")
     {
-        sigintHandler(0);
+        // Record Options
+        po::options_description snap_desc("snapshot options");
+        snap_desc.add_options()("filename", po::value<std::string>(), "filename (currently only .mp4)");
+
+        // Collect all the unrecognized options from the first pass. This will include the
+        // (positional) command name, so we need to erase that.
+        std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+        opts.erase(opts.begin());
+
+        // Record positional args
+        po::positional_options_description snap_pos_args;
+        snap_pos_args.add("filename", 1);
+
+        // Parse again...
+        po::store(po::command_line_parser(opts).options(snap_desc).positional(snap_pos_args).run(), vm);
+
+        std::string filenameStr;
+        try
+        {
+            filenameStr = vm["filename"].as<std::string>();
+        }
+        catch(...) //TODO: Lazy exception handling, check for type
+        {
+            cerr << "ERROR: you need provide filename with snapshot option";
+            printHelp(globalArgs);
+        }
+
+        // Convert to char array
+        char filename[filenameStr.length()+1];
+        strcpy(filename, filenameStr.c_str());
+
+        snapshot(DALSA_CAMERA, filename);            
+    }
+    else
+    {
+        cerr << "COMMAND UNRECOGNISED: " << command << endl;
+        printHelp(globalArgs);
     }
 
 
     return 0;
 }
+
+
