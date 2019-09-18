@@ -1,3 +1,7 @@
+/* 
+	Represents a connection to a dalsa camera. Serves as a convenience wrapper around the GigE-V Framework 
+*/
+
 #include "gevapi.h"	
 #include <map>
 
@@ -6,7 +10,6 @@
 class DalsaCamera 
 {
 	private:
-		//TODO: Design patterns
 		GEV_CAMERA_HANDLE handle = NULL;
 		int numBuf;
 		PUINT8 *bufAddress;

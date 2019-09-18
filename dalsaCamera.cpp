@@ -1,3 +1,7 @@
+/* 
+	Represents a connection to a dalsa camera. Serves as a convenience wrapper around the GigE-V Framework 
+*/
+
 #ifndef __DALSACAMERA_CPP__
 #define __DALSACAMERA_CPP__
 
@@ -9,6 +13,7 @@
 #include <math.h>
 #include <map>
 #include <ctime>
+#include <time.h>
 
 using namespace std;
 
@@ -21,19 +26,24 @@ using namespace cv;
 // GEV lib definitions usually found in /usr/dalsa/GigeV/include
 #include "gevapi.h"				
 
-#include <time.h>
-
 #include "dalsaCamera.h"
 #include "videoIO/VideoIO.h"
 #include "encoder.cpp"
+ 
+#define NUM_BUF 64 // image buffers
+#define TIMEOUT_US 10000 // timeout during image acuqisition
 
-#define NUM_BUF 64
-// timeout during image acuqisition
-#define TIMEOUT_US 10000
+// These settings were taken from genicam_cpp_demo in the GigE-V network. Some tuning could probably be done here
+#define HEARTBEAT_TIMEOUTE_MS 90000
+#define STREAMFRAME_TIMEOUT_MS 1001 			// Internal timeout for frame reception.
+#define STREAMFRAME_NUM_FRAMES_BUFFERED 4 			// Buffer frames internally.
+#define STREAMFRAME_MEMORY_LIMIT_MAX 64*1024*1024	// Adjust packet memory buffering limit.	
+#define STREAMFRAME_PACKET_SIZE 9180					// Adjust the GVSP packet size.
+#define STREAMFRAME_PACKET_DELAY 10					// Add usecs between packets to pace arrival at NIC.
+
 
 DalsaCamera::DalsaCamera(bool debugMode=true)
 {
-	//TODO: hardcoded values arrr baaaad
 	numBuf = NUM_BUF;
 	bufAddress = new PUINT8[numBuf];
 
@@ -66,6 +76,7 @@ int DalsaCamera::isOpened()
 	return _isOpened;
 }
 
+/* Initialise the camera for frame acquisition  */
 int DalsaCamera::open(int width, int height, float framerate, float exposureTime)
 {
 	// Check validity of framerate and exposure
@@ -82,7 +93,6 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 		return 1;
 	}
 
-
 	// Set default options for the library.
 	GEVLIB_CONFIG_OPTIONS options = {0};
 	GevGetLibraryConfigOptions( &options);
@@ -91,8 +101,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 
 	// Discover Cameras
 	int numCameras = 0;
-	//TODO: why does genicam_cpp_demo uses the equation (MAX_NETIF * MAX_CAMERAS_PER_NETIF)
-	//   with the hardcoded value below
+	//TODO: why does genicam_cpp_demo use the equation (MAX_NETIF * MAX_CAMERAS_PER_NETIF) with the hardcoded value below?
 	int maxCameras = 8 * 32;
 
 	GEV_DEVICE_INTERFACE  pCamera[maxCameras] = {0};
@@ -123,13 +132,16 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	GEV_CAMERA_OPTIONS camOptions = {0};
 	GevGetCameraInterfaceOptions(handle, &camOptions);
 
-	camOptions.heartbeat_timeout_ms = 90000;		// For debugging (delay camera timeout while in debugger)
-	camOptions.streamFrame_timeout_ms = 1001;				// Internal timeout for frame reception.
-	camOptions.streamNumFramesBuffered = 4;				// Buffer frames internally.
-	camOptions.streamMemoryLimitMax = 64*1024*1024;		// Adjust packet memory buffering limit.	
-	camOptions.streamPktSize = 9180;							// Adjust the GVSP packet size.
-	camOptions.streamPktDelay = 10;							// Add usecs between packets to pace arrival at NIC.
+	// Set camera stream options (taken from genicam_cpp_demo)
+	GevGetCameraInterfaceOptions( handle, &camOptions);
 	
+	camOptions.heartbeat_timeout_ms = HEARTBEAT_TIMEOUT_MS;					// For debugging (delay camera timeout while in debugger)
+	camOptions.streamFrame_timeout_ms = STREAMFRAME_TIMEOUT_MS;				// Internal timeout for frame reception.
+	camOptions.streamNumFramesBuffered = STREAMFRAME_NUM_FRAMES_BUFFERED;	// Buffer frames internally.
+	camOptions.streamMemoryLimitMax = STREAMFRAME_MEMORY_LIMIT_MAX;			// Adjust packet memory buffering limit.	
+	camOptions.streamPktSize = STREAMFRAME_PACKET_SIZE;						// Adjust the GVSP packet size.
+	camOptions.streamPktDelay = STREAMFRAME_PACKET_DELAY;					// Add usecs between packets to pace arrival at NIC.
+
 	GevSetCameraInterfaceOptions(handle, &camOptions);
 
 	// Initiliaze access to GenICam features via Camera XML File
@@ -139,7 +151,6 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	}
 
 	// Get the name of XML file name back (example only - in case you need it somewhere).
-	//TODO: Where does max_path come from?
 	char xmlFileName[MAX_PATH] = {0};
 	if(GevGetGenICamXML_FileName(handle, (int)sizeof(xmlFileName), xmlFileName)) 
 	{
@@ -203,9 +214,8 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	GevGetFeatureValue(handle, "AcquisitionFrameRate", &type, sizeof(framerate), &framerate);
 	GevGetFeatureValue(handle, "ExposureTime", &type, sizeof(readExposed), &readExposed);
 
-	// Setting height and width offsets to centralise image
-	int heightOffset, widthOffset, heightMax, widthMax;
-	 
+	// Set height and width offsets to centralise image
+	int heightOffset, widthOffset, heightMax, widthMax;	 
 	GevGetFeatureValue(handle, "WidthMax", &type, sizeof(widthMax), &widthMax);
 	GevGetFeatureValue(handle, "HeightMax", &type, sizeof(heightMax), &heightMax);
 
@@ -229,7 +239,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	_framerate = framerate;
 	_exposure = readExposed;
 
-	// Log it!
+	// Log
 	logCamera();
 
 	// Allocate buffers
@@ -244,7 +254,7 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	}
 
 	// Initialise Image Transfer
-	// TODO: Use Sync! It is more thread safe
+	// TODO: Use Sync! It's more thread safe
 	if(GevInitImageTransfer(handle, Asynchronous, numBuf, bufAddress))
 	{
 		cerr << "Failed to Initiliaze image transfer\n";
@@ -271,6 +281,8 @@ int DalsaCamera::open(int width, int height, float framerate, float exposureTime
 	return 0;
 }
 
+/* Log camera information */
+// TODO: Use boost logging framework
 void DalsaCamera::logCamera()
 {
 	if(handle == NULL || !debug)
@@ -290,7 +302,7 @@ void DalsaCamera::logCamera()
 	printf("\tPixelFormat (str) = %s\n", value_str);
 }
 
-
+/* Obtains next image transfered over UDP */
 GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 {
 	GEV_BUFFER_OBJECT* imgGev = NULL;
@@ -331,9 +343,10 @@ GEV_BUFFER_OBJECT* DalsaCamera::nextAcquiredImage()
 	return imgGev;
 }
 
-// Debayered image
-// Handle what happens when gevapi fills provided buffers / internal camera 
-//     buffer fills. Maybe reset the map and return an error code
+/* Get next image. 
+*	Returns debayered images in the order they were acquired by the camera.
+*	This works by caching frames temporarily in a timestamp map.
+*/
 int DalsaCamera::getNextImage(cv::Mat *img)
 {
 	// Check for camera state
@@ -352,7 +365,7 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 		uint64_t acquired_t = combineTimestamps(nextImage->timestamp_lo, nextImage->timestamp_hi);
 		_reorderingMap[acquired_t] = nextImage;
 
-		// Check for __tNextFrameMicroseconds within a microsecond tolerance to account for rounding error
+		// Check for _tNextFrameMicroseconds within a microsecond tolerance to account for rounding error
 		for(uint64_t t=_tNextFrameMicroseconds-2; t<=_tNextFrameMicroseconds+2; t++)
 		{
 			if(_reorderingMap.find(t) != _reorderingMap.end())
@@ -386,6 +399,8 @@ int DalsaCamera::getNextImage(cv::Mat *img)
 	return 0;
 }
 
+/* Log an Image */
+// TODO: Use boost logging framework
 void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 {
 	// Update Counter
@@ -412,10 +427,9 @@ void DalsaCamera::logImg(GEV_BUFFER_OBJECT *imgGev)
 	printf("\n");
 }
 
-// Duration is in seconds
+/* Record some video */
 int DalsaCamera::record(float duration, int crf, char filename[])
 {
-	// TODO: Make this configuration more accessible
 	int numFrames = round(duration * float(_framerate));
 
 	// Initialise video writer
@@ -445,6 +459,7 @@ int DalsaCamera::record(float duration, int crf, char filename[])
 	writer.close();
 }
 
+/* Save next image to file */
 int DalsaCamera::snapshot(char filename[])
 {
 	cv::Mat img;
@@ -453,19 +468,19 @@ int DalsaCamera::snapshot(char filename[])
 	cv::imwrite(filename, img);
 }
 
-// In Microseconds
+/* Period in Microseconds */ 
 int DalsaCamera::periodMicroseconds()
 {
 	return round(1.0/_framerate*1000000.0);
 }
 
+/* Hoursekeeping */ 
 int DalsaCamera::close() 
 {
 	printf("Closing camera...\n");
 
 	UINT16 status;
 
-	//TODO: GOTO Fail
 	// Must close everything in order, otherwise things may hang. 
 	// (1) Camera
 	// (2) Gev API
@@ -505,6 +520,7 @@ int DalsaCamera::close()
 	return status;
 }
 
+/* combine high and low timestamps into 64 bit int */
 uint64_t DalsaCamera::combineTimestamps(uint32_t low, uint32_t high)
 {
     return ((uint64_t)high << 32) + low;
