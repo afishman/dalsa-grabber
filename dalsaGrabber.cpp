@@ -225,7 +225,7 @@ void snapshot(DalsaCamera *camera, po::parsed_options parsed, po::variables_map 
 }
 
 
-/* A Simple console app to record and monitor using a Teledyne Dalsa GigE-V camera */
+/* A simple console app to record and monitor using a Teledyne Dalsa GigE-V camera */
 int main(int argc, char* argv[])
 {   
     // Global options
