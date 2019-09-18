@@ -41,9 +41,17 @@ namespace po = boost::program_options;
 // TODO: include option for scale
 #define MONITOR_SCALE 1
 #define WINDOW_NAME "Dalsa Monitor"
+#define DEFAULT_FRAMERATE 29
+#define DEFAULT_WIDTH 2560
+#define DEFAULT_HEIGHT 1024
+#define DEFAULT_EXPOSURE 10000
+#define DEFAULT_CRF 15
+
+
 
 // Global camera reference for graceful termination
 DalsaCamera *DALSA_CAMERA = NULL;
+
 
 /* For graceful failing */
 void onExit()
@@ -152,11 +160,11 @@ int main(int argc, char* argv[])
     globalArgs.add_options()
         ("command", po::value<std::string>(), "monitor | snapshot <filename> | record <seconds> <filename> | speed-test")
         ("subargs", po::value<std::vector<std::string> >(), "Sub args if required")
-        ("framerate", po::value<float>()->default_value(29), "max 29fps")
-        ("width", po::value<int>()->default_value(2560), "width should be an integer fraction of the max (2560)")
-        ("height", po::value<int>()->default_value(1024), "height should be an integer fraction of the max (2048)")
-        ("exposure", po::value<float>()->default_value(10000), "exposure in microseconds, must be less than the framerate")
-        ("crf", po::value<int>()->default_value(15), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
+        ("framerate", po::value<float>()->default_value(DEFAULT_FRAMERATE), "max 29fps")
+        ("width", po::value<int>()->default_value(DEFAULT_WIDTH), "width should be an integer fraction of the max (2560)")
+        ("height", po::value<int>()->default_value(DEFAULT_HEIGHT), "height should be an integer fraction of the max (2048)")
+        ("exposure", po::value<float>()->default_value(DEFAULT_EXPOSURE), "exposure in microseconds, must be less than the framerate")
+        ("crf", po::value<int>()->default_value(DEFAULT_CRF), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
         ("debug", po::bool_switch(&debug), "verbose logging for debugging purposes")
     ;
 
@@ -209,8 +217,6 @@ int main(int argc, char* argv[])
     }
 
     // Run command
-    // For graceful failing, run the sigint handler on exception
-
     if(command == "speed-test")
     {
         speedTest(DALSA_CAMERA);
