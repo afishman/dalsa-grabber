@@ -34,7 +34,7 @@ using namespace cv;
 #define TIMEOUT_US 10000 // timeout during image acuqisition
 
 // These settings were taken from genicam_cpp_demo in the GigE-V network. Some tuning could probably be done here
-#define HEARTBEAT_TIMEOUTE_MS 90000
+#define HEARTBEAT_TIMEOUT_MS 90000
 #define STREAMFRAME_TIMEOUT_MS 1001 			// Internal timeout for frame reception.
 #define STREAMFRAME_NUM_FRAMES_BUFFERED 4 			// Buffer frames internally.
 #define STREAMFRAME_MEMORY_LIMIT_MAX 64*1024*1024	// Adjust packet memory buffering limit.	

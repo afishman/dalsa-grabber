@@ -1,5 +1,5 @@
 /*
-    A simple wrapper around the ffmpeg piper with a SPSC work queue
+    A simple wrapper around the videoIO ffmpeg piper with a SPSC work queue
     Thanks: http://www.boost.org/doc/libs/1_53_0/doc/html/lockfree/examples.html
 */
 
@@ -20,11 +20,10 @@ using namespace cv;
 using namespace std;
 #include <chrono>
 using namespace std::chrono;
- 
 
 #include "videoIO/VideoIO.h"
 
-// TODO: offload these to run/compiler-time settings file? 
+// TODO: offload these to run/compiler-time settings file
 #define QUEUE_CAPACITY 64
 #define DISPLAY_SCALE 0.25
 #define FFMPEG_OPTIONS "-y -codec:v libx264 -preset ultrafast"
@@ -41,14 +40,12 @@ class VideoEncoder
         boost::thread* _displayThread;
         boost::lockfree::spsc_queue<cv::Mat, boost::lockfree::capacity<QUEUE_CAPACITY>> _queue;
 
-        // This mutex is used for three purposes:
-            // 1) to synchronize accesses to i
-            // 2) to synchronize accesses to std::cerr
-            // 3) for the condition variable cv
+        // This mutex is used for synchronise communication with ffmpeg
         std::condition_variable cv;
         std::mutex cv_m;
         std::mutex display_m;
 
+        /* ffmpeg worker thread */ 
         void ffmpegWorker(void)
         {
             while (!_done) 
@@ -62,6 +59,7 @@ class VideoEncoder
             writeQueue();
         }
 
+        /* pipe all accumulated frames onto ffmpeg */ 
         void writeQueue()
         {
             cv::Mat img;
@@ -75,6 +73,8 @@ class VideoEncoder
             }
         }
 
+        /* Log */ 
+        // TODO: use boost logging framework
         void logFrame()
         {
             writeCount++;
@@ -88,7 +88,7 @@ class VideoEncoder
             cout << "\tencoder queue size: " << _queue.read_available() << endl;
         }
 
-        // TODO: Quit on 'q'
+        /* Display Thread */ 
         cv::Mat displayImg;
         void displayFrame(void)
         {
@@ -113,7 +113,7 @@ class VideoEncoder
     public:
         VideoEncoder(char*, int, int, int, int, bool);
 
-        //TODO feedback if something has failed
+        /* Add an image to the encoder queue */ 
         int writeFrame(cv::Mat img)
         {
             while (!_queue.push(img));
@@ -133,40 +133,37 @@ class VideoEncoder
             return 0;
         }
 
-        // Hangs until all frames have been passed to ffmpeg
+        /* Hangs until the encoder queue is processed */
         int close()
         {
             _done = true;
             _encoderThread->join();
             _displayThread->join();
 
-            // TODO: delete threads?
-
             return 0;
         }
 };
 
+/* Prepare for frame encoding */ 
 VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate, int crf, bool debug=false)
 {
     writeCount = 0;
     _debug = debug;
 
-    // TODO: an option for this
+    // Setup ffmpeg subprocess
     char ffmpegOptions[] = FFMPEG_OPTIONS;
     _writer.DebugMode = true;
     _writer.Create(filename, width, height, framerate, (std::string(ffmpegOptions)+" -crf "+std::to_string(crf)).c_str());
 
-    // Start thread
+    // Nothing more to add to queue flag
     _done = false;
 
-    // TODO: Delete after join?
     _encoderThread = new boost::thread(boost::bind(&VideoEncoder::ffmpegWorker, this));
     _displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
 
-
     // Monitor Window
-    // TODO: An option to disable this
-    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE );
+    // TODO: Include option to disable this
+    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
 }
 
 #endif /* __ENCODER_CPP__ */
