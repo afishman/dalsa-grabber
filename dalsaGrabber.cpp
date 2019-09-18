@@ -136,8 +136,51 @@ void monitor(DalsaCamera *camera)
 }
 
 /* Record video */
-void record(DalsaCamera *camera, float duration, int crf, char filename[])
+void parseRecord(DalsaCamera *camera, po::parsed_options parsed, po::variables_map vm, po::options_description globalArgs)
 {
+    // Record Options
+    po::options_description record_desc("record options");
+    record_desc.add_options()
+        ("duration", po::value<float>(), "Record duration in seconds")
+        ("filename", po::value<std::string>(), "filename (currently only .mp4)")
+        ("crf", po::value<int>()->default_value(DEFAULT_CRF), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
+    ;
+
+    // Collect all the unrecognized options from the first pass. This will include the
+    // (positional) command name, so we need to erase that.
+    std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+    opts.erase(opts.begin());
+
+    // Record positional args
+    po::positional_options_description record_pos_args;
+    record_pos_args
+    .add("duration", 1)
+    .add("filename", 1);
+
+    // Parse again...
+    po::store(po::command_line_parser(opts).options(record_desc).positional(record_pos_args).run(), vm);
+
+    float duration;
+    int crf;
+    std::string filenameStr;        
+    
+    try
+    {
+        duration = vm["duration"].as<float>();
+        filenameStr = vm["filename"].as<std::string>();
+        crf = vm["crf"].as<int>();
+    }
+    catch(...) //TODO: Lazy exception handling, check for type
+    {
+        cerr << "ERROR: you need provide duration and filename with record option";
+        printHelp(globalArgs);
+    }
+
+    // Convert to char array
+    char filename[filenameStr.length()+1];
+    strcpy(filename, filenameStr.c_str());
+
+    // Record
     camera->record(duration, crf, filename);       
     camera->close();
 }
@@ -164,7 +207,6 @@ int main(int argc, char* argv[])
         ("width", po::value<int>()->default_value(DEFAULT_WIDTH), "width should be an integer fraction of the max (2560)")
         ("height", po::value<int>()->default_value(DEFAULT_HEIGHT), "height should be an integer fraction of the max (2048)")
         ("exposure", po::value<float>()->default_value(DEFAULT_EXPOSURE), "exposure in microseconds, must be less than the framerate")
-        ("crf", po::value<int>()->default_value(DEFAULT_CRF), "encoding quality (0 for lossless), see ffmpeg H.264 docs for more details https://trac.ffmpeg.org/wiki/Encode/H.264#crf")
         ("debug", po::bool_switch(&debug), "verbose logging for debugging purposes")
     ;
 
@@ -204,7 +246,6 @@ int main(int argc, char* argv[])
     int width = vm["width"].as<int>();
     int height = vm["height"].as<int>();
     float exposure = vm["exposure"].as<float>();
-    int crf = vm["crf"].as<int>();
 
     // Open Camera
     DALSA_CAMERA = new DalsaCamera(debug);
@@ -227,45 +268,7 @@ int main(int argc, char* argv[])
     }
     else if(command == "record")
     {
-        // Record Options
-        po::options_description record_desc("record options");
-        record_desc.add_options()
-            ("duration", po::value<float>(), "Record duration in seconds")
-            ("filename", po::value<std::string>(), "filename (currently only .mp4)")
-        ;
-
-        // Collect all the unrecognized options from the first pass. This will include the
-        // (positional) command name, so we need to erase that.
-        std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-        opts.erase(opts.begin());
-
-        // Record positional args
-        po::positional_options_description record_pos_args;
-        record_pos_args
-        .add("duration", 1)
-        .add("filename", 1);
-
-        // Parse again...
-        po::store(po::command_line_parser(opts).options(record_desc).positional(record_pos_args).run(), vm);
-
-        float duration;
-        std::string filenameStr;
-        try
-        {
-            duration = vm["duration"].as<float>();
-            filenameStr = vm["filename"].as<std::string>();
-        }
-        catch(...) //TODO: Lazy exception handling, check for type
-        {
-            cerr << "ERROR: you need provide duration and filename with record option";
-            printHelp(globalArgs);
-        }
-
-        // Convert to char array
-        char filename[filenameStr.length()+1];
-        strcpy(filename, filenameStr.c_str());
-
-        record(DALSA_CAMERA, duration, crf, filename);
+        parseRecord(DALSA_CAMERA, parsed, vm, globalArgs);
     }
     else if(command == "snapshot")
     {
