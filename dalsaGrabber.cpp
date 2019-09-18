@@ -48,7 +48,6 @@ namespace po = boost::program_options;
 #define DEFAULT_CRF 15
 
 
-
 // Global camera reference for graceful termination
 DalsaCamera *DALSA_CAMERA = NULL;
 
@@ -136,7 +135,7 @@ void monitor(DalsaCamera *camera)
 }
 
 /* Record video */
-void parseRecord(DalsaCamera *camera, po::parsed_options parsed, po::variables_map vm, po::options_description globalArgs)
+void record(DalsaCamera *camera, po::parsed_options parsed, po::variables_map vm, po::options_description globalArgs)
 {
     // Record Options
     po::options_description record_desc("record options");
@@ -185,13 +184,46 @@ void parseRecord(DalsaCamera *camera, po::parsed_options parsed, po::variables_m
     camera->close();
 }
 
-/* Take a snapshot */
-void snapshot(DalsaCamera *camera, char filename[])
+/* Parse and take snapshot */
+void snapshot(DalsaCamera *camera, po::parsed_options parsed, po::variables_map vm, po::options_description globalArgs)
 {
+    // Record Options
+    po::options_description snap_desc("snapshot options");
+    snap_desc.add_options()("filename", po::value<std::string>(), "filename (currently only .mp4)");
+
+    // Collect all the unrecognized options from the first pass. This will include the
+    // (positional) command name, so we need to erase that.
+    std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+    opts.erase(opts.begin());
+
+    // positional args
+    po::positional_options_description snap_pos_args;
+    snap_pos_args.add("filename", 1);
+
+    // Parse again...
+    po::store(po::command_line_parser(opts).options(snap_desc).positional(snap_pos_args).run(), vm);
+
+    std::string filenameStr;
+    try
+    {
+        filenameStr = vm["filename"].as<std::string>();
+    }
+    catch(...) //TODO: Lazy exception handling, check for type
+    {
+        cerr << "ERROR: you need provide filename with snapshot option";
+        printHelp(globalArgs);
+    }
+
+    // Convert to char array
+    char filename[filenameStr.length()+1];
+    strcpy(filename, filenameStr.c_str());
+
+    // Camera
     cout << "taking a snapshot to " << filename << endl;
     camera->snapshot(filename);
     camera->close();
 }
+
 
 /* A Simple console app to record and monitor using a Teledyne Dalsa GigE-V camera */
 int main(int argc, char* argv[])
@@ -268,49 +300,17 @@ int main(int argc, char* argv[])
     }
     else if(command == "record")
     {
-        parseRecord(DALSA_CAMERA, parsed, vm, globalArgs);
+        record(DALSA_CAMERA, parsed, vm, globalArgs);
     }
     else if(command == "snapshot")
     {
-        // Record Options
-        po::options_description snap_desc("snapshot options");
-        snap_desc.add_options()("filename", po::value<std::string>(), "filename (currently only .mp4)");
-
-        // Collect all the unrecognized options from the first pass. This will include the
-        // (positional) command name, so we need to erase that.
-        std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-        opts.erase(opts.begin());
-
-        // Record positional args
-        po::positional_options_description snap_pos_args;
-        snap_pos_args.add("filename", 1);
-
-        // Parse again...
-        po::store(po::command_line_parser(opts).options(snap_desc).positional(snap_pos_args).run(), vm);
-
-        std::string filenameStr;
-        try
-        {
-            filenameStr = vm["filename"].as<std::string>();
-        }
-        catch(...) //TODO: Lazy exception handling, check for type
-        {
-            cerr << "ERROR: you need provide filename with snapshot option";
-            printHelp(globalArgs);
-        }
-
-        // Convert to char array
-        char filename[filenameStr.length()+1];
-        strcpy(filename, filenameStr.c_str());
-
-        snapshot(DALSA_CAMERA, filename);            
+        snapshot(DALSA_CAMERA, parsed, vm, globalArgs); 
     }
     else
     {
         cerr << "COMMAND UNRECOGNISED: " << command << endl;
         printHelp(globalArgs);
     }
-
 
     return 0;
 }
