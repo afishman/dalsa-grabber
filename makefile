@@ -1,7 +1,6 @@
 # Compiler and linker settings
 CC=gcc
 IROOT=/usr/dalsa/GigeV
-VIDEO_WRITER_PATH = ./videoIO
 
 # Architecture specific definitions (reproduced from PATH_TO_GIGE-V_FRAMEWORK/DALSA/GigeV/examples/genicam_c_demos)
 ifeq ($(shell if test -e archdefs.mk; then echo exists; fi), exists)
@@ -15,6 +14,7 @@ INC_PATH = -I. -I$(IROOT)/include $(INC_GENICAM) -I$(VIDEO_WRITER_PATH)/..
 DEPS = $(VIDEO_WRITER_PATH)/VideoIO.h                       
 LCLLIBS=  -L$(ARCHLIBDIR) -L/usr/local/lib -lGevApi -lCorW32
 OPENCV = `pkg-config opencv --cflags --libs`
+VIDEO_WRITER_PATH = ./videoIO
 
 # objects to compile
 OBJS += ./videoIO/VideoIO.o \
