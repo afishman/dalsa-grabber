@@ -433,7 +433,7 @@ int DalsaCamera::record(float duration, int crf, char filename[])
 	int numFrames = round(duration * float(_framerate));
 
 	// Initialise video writer
-	VideoEncoder writer(filename, (int)(width()), (int)(height()), _framerate, crf, debug);
+	Encoder writer(filename, (int)(width()), (int)(height()), _framerate, crf, debug);
 
     // Collect the frames
 	for(int i=0; i<numFrames; i++)

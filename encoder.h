@@ -24,10 +24,10 @@ using namespace std::chrono;
 #define FFMPEG_OPTIONS "-y -codec:v libx264 -preset ultrafast"
 #define WINDOW_NAME "Dalsa Monitor"
 
-class VideoEncoder 
+class Encoder 
 {
     public:
-        VideoEncoder(char*, int, int, int, int, bool);
+        Encoder(char*, int, int, int, int, bool);
         int writeFrame(cv::Mat img);
         int close();
 

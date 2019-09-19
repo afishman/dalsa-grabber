@@ -26,7 +26,7 @@ using namespace std::chrono;
 #include "encoder.h"
 
 /* Prepare for frame encoding */ 
-VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate, int crf, bool debug=false)
+Encoder::Encoder(char filename[], int width, int height, int framerate, int crf, bool debug=false)
 {
     writeCount = 0;
     _debug = debug;
@@ -39,8 +39,8 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
     // Nothing more to add to queue flag
     _done = false;
 
-    _encoderThread = new boost::thread(boost::bind(&VideoEncoder::ffmpegWorker, this));
-    _displayThread = new boost::thread(boost::bind(&VideoEncoder::displayFrame, this));
+    _encoderThread = new boost::thread(boost::bind(&Encoder::ffmpegWorker, this));
+    _displayThread = new boost::thread(boost::bind(&Encoder::displayFrame, this));
 
     // Monitor Window
     // TODO: Include option to disable this
@@ -49,7 +49,7 @@ VideoEncoder::VideoEncoder(char filename[], int width, int height, int framerate
 
 
 /* ffmpeg worker thread */ 
-void VideoEncoder::ffmpegWorker(void)
+void Encoder::ffmpegWorker(void)
 {
     while (!_done) 
     {
@@ -63,7 +63,7 @@ void VideoEncoder::ffmpegWorker(void)
 }
 
 /* pipe all accumulated frames onto ffmpeg */ 
-void VideoEncoder::writeQueue()
+void Encoder::writeQueue()
 {
     cv::Mat img;
     while (_queue.pop(img))
@@ -78,7 +78,7 @@ void VideoEncoder::writeQueue()
 
 /* Log */ 
 // TODO: use boost logging framework
-void VideoEncoder::logFrame()
+void Encoder::logFrame()
 {
     writeCount++;
 
@@ -92,7 +92,7 @@ void VideoEncoder::logFrame()
 }
 
 /* Display Thread */ 
-void VideoEncoder::displayFrame(void)
+void Encoder::displayFrame(void)
 {
     while(!_done)
     {
@@ -114,7 +114,7 @@ void VideoEncoder::displayFrame(void)
 
 
 /* Add an image to the encoder queue */ 
-int VideoEncoder::writeFrame(cv::Mat img)
+int Encoder::writeFrame(cv::Mat img)
 {
     while (!_queue.push(img));
 
@@ -134,7 +134,7 @@ int VideoEncoder::writeFrame(cv::Mat img)
 }
 
 /* Hangs until the encoder queue is processed */
-int VideoEncoder::close()
+int Encoder::close()
 {
     _done = true;
     _encoderThread->join();
