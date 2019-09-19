@@ -28,8 +28,11 @@ Note: It is *strongly* reccomended the GigE-V network config script to improve n
 
 ### Examples ###
 
-Record a video for 10s:
+Record a video for 10s
 `./dalsaGrabber record 10 ~/test.mp4`
 
-Stream video to screen but don't record
+Heads-up display
 `./dalsaGrabber monitor`
+
+Take an image
+`./dalsaGrabber snapshot ~/test.jpg`
