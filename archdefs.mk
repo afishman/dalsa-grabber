@@ -12,6 +12,7 @@
 #
 # Architecture specific environment defs for self-hosted environment 
 #
+# Reproduced from PATH_TO_GIGE-V_FRAMEWORK/DALSA/GigeV/examples/genicam_c_demo  
 ifndef ARCH
   ARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/x86_64/x86_64/ -e s/armv5.*/armv5/ -e s/armv6.*/armv6/ -e s/armv7.*/armv7/)
 endif

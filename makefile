@@ -1,48 +1,32 @@
-CC= gcc
-# IROOT directory based on installed distribution tree (not archive/development tree). 
-# IROOT=../..
+# Compiler and linker settings
+CC=gcc
 IROOT=/usr/dalsa/GigeV
+VIDEO_WRITER_PATH = ./videoIO
 
-#
-# Get the configured include defs file.
-# (It gets installed to the distribution tree).
+# Architecture specific definitions (reproduced from PATH_TO_GIGE-V_FRAMEWORK/DALSA/GigeV/examples/genicam_c_demos)
 ifeq ($(shell if test -e archdefs.mk; then echo exists; fi), exists)
 	include archdefs.mk
 else
-# Force an error
-$(error	archdefs.mk file not found. It gets configured on installation ***)
+	$(error	archdefs.mk file not found. It gets configured on installation ***)
 endif
 
-VIDEO_WRITER_PATH = ./videoIO
-
+# Dependancy paths
 INC_PATH = -I. -I$(IROOT)/include $(INC_GENICAM) -I$(VIDEO_WRITER_PATH)/..
-DEPS = $(VIDEO_WRITER_PATH)/VideoIO.h
-
-                          
-DEBUGFLAGS = -g 
-
-CXX_COMPILE_OPTIONS = -c $(DEBUGFLAGS)
-
-C_COMPILE_OPTIONS= $(DEBUGFLAGS)
-
+DEPS = $(VIDEO_WRITER_PATH)/VideoIO.h                       
 LCLLIBS=  -L$(ARCHLIBDIR) -L/usr/local/lib -lGevApi -lCorW32
-
-# # TODO: Cleanup
-# OPENCV_PATHS=-I/usr/local/include/opencv -I/usr/local/include/opencv2 -L/usr/local/lib/
-# OPENCV_LIBS=-lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_stitching
-
 OPENCV = `pkg-config opencv --cflags --libs`
 
 # objects to compile
-
 OBJS += ./videoIO/VideoIO.o \
         ./videoIO/Pipe.o \
         dalsaGrabber.o
 
-all: dalsaGrabber
+DEBUGFLAGS = -g 
+CXX_COMPILE_OPTIONS = -c $(DEBUGFLAGS)
+C_COMPILE_OPTIONS= $(DEBUGFLAGS)
 
-#dalsaGrabber.o: dalsaGrabber.o
-#	echo fooooo
+# Targets
+all: dalsaGrabber
 
 %.o : %.c $(DEPS)
 	$(CC) -I. $(INC_PATH) $(C_COMPILE_OPTIONS) $(ARCH_OPTIONS) -c $< -o $@
