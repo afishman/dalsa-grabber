@@ -1,5 +1,5 @@
 # dalsa-grabber
-A simple recording app using the Dalsa GigE-V framework for Linux to make recording and display easy.
+A simple frame grabbing app using the Dalsa GigE-V framework for Linux to make recording and display easy.
 Defaults were tested to be appropriate for the Teledyne Dalsa Genie TS-C2500 camera.
 
 ## Installation ##
@@ -19,9 +19,9 @@ Defaults were tested to be appropriate for the Teledyne Dalsa Genie TS-C2500 cam
 
 ## Usage ##
 
-dalsaGrabber is the main console app produced from the makefile that let's you  write videos and monitor. Run `dalsaGrabber --help` for options (such as sepcifying framerate / resolution etc...)
+`dalsaGrabber` is the console app produced from the makefile that let's you  write videos and monitor. Run `$ ./dalsaGrabber --help` for options (such as sepcifying framerate / resolution etc...)
 
-Note: It is *strongly* reccomended the GigE-V network config script to improve network performance:
+Note: *strongly* reccomended running the GigE-V network config script to improve network performance:
 * `sudo /PATH_TO_GIGE-V_FRAMEWORK/DALSA/GigeV/bin/gev_nettweak ETHERNET_DEVICE_NAME`
 
 (Hint: Available network devices can be listed with `ifconfig`)
@@ -29,10 +29,13 @@ Note: It is *strongly* reccomended the GigE-V network config script to improve n
 ### Examples ###
 
 Record a video for 10s
-`./dalsaGrabber record 10 ~/test.mp4`
+
+`$ ./dalsaGrabber record 10 ~/test.mp4`
 
 Heads-up display
-`./dalsaGrabber monitor`
+
+`$ ./dalsaGrabber monitor`
 
 Take an image
-`./dalsaGrabber snapshot ~/test.jpg`
+
+`$ ./dalsaGrabber snapshot ~/test.jpg`
